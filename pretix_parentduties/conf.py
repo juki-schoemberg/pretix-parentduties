@@ -2,6 +2,7 @@
 from django.utils.translation import gettext_noop
 from i18nfield.strings import LazyI18nString
 
+from pretix.base.reldate import RelativeDateWrapper
 from pretix.base.settings import settings_hierarkey
 
 ASK_OFF = "off"
@@ -31,6 +32,8 @@ DEFAULTS = {
     "parentduties_ask_phone": (ASK_OPTIONAL, str),
     "parentduties_confirm_checkbox": (True, bool),
     "parentduties_new_items_trigger": (False, bool),
+    # Parents may change (never withdraw) their duty until this date; None = admins only.
+    "parentduties_change_until": (None, RelativeDateWrapper),
 }
 
 for _key, (_default, _type) in DEFAULTS.items():

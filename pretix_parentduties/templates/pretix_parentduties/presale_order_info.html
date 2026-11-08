@@ -9,5 +9,8 @@
                 <li><strong>{{ s.text }}</strong> <span class="text-muted">({{ s.status_text }})</span></li>
             {% endfor %}
         </ul>
+        <a href="{{ duty_url }}" class="btn btn-default btn-sm">
+            {% if can_change %}{% trans "View or change duty" %}{% else %}{% trans "Details" %}{% endif %}
+        </a>
     </div>
 </div>

@@ -9,7 +9,7 @@ In the German interface it is called **„Elterndienste“**.
 
 The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
 
-## Features (v0.1, MVP)
+## Features
 
 - **Duty slots per event** with name, description, category, date, time,
   capacity (empty = unlimited), sort position and optional product limit.
@@ -45,7 +45,14 @@ The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
   `{parent_duty_time_from}`, `{parent_duty_time_to}`, `{parent_duty_time}`,
   `{parent_duty_helper_name}`, `{parent_duty_helper_phone}`,
   `{parent_duty_status}`, `{parent_duty_family_code}`, `{parent_duty_note}`,
-  `{parent_duty_free_spots}`, `{parent_duty_open_slots}`.
+  `{parent_duty_url}`, `{parent_duty_free_spots}`, `{parent_duty_open_slots}`.
+- **Self-service change and deeplink:** `{parent_duty_url}` is a secret link
+  (no login) to the parents' duty page, also linked from the order page.
+  Until a configurable deadline (absolute or relative to the event, e.g.
+  “7 days before”) parents can switch to another duty with free spots and
+  update helper name / phone. Withdrawing is not possible; after the deadline
+  the page is read-only. Siblings change at the family's root order,
+  exemptions stay admin decisions.
 - **Report fields** for [pretix-reportgenerator](https://github.com/juki-schoemberg/pretix-reportgenerator)
   (`plugin.pretix_parentduties.*`), only if it is installed.
 - **REST API:** signups are included in the order's `plugin_data`.
@@ -73,7 +80,8 @@ pytest
 Tests run against the latest pretix stable and (allowed to fail) pretix
 `master`, see `.github/workflows/tests.yml`.
 
-Update translations with `django-admin makemessages -l de` inside
+Source strings are English; German (`de`) and English (`en`) catalogs are
+included. Update them with `django-admin makemessages -l de -l en` inside
 `pretix_parentduties/`, then `django-admin compilemessages`. The compiled
 `.mo` files are committed so `pip install git+…` works without a build step.
 

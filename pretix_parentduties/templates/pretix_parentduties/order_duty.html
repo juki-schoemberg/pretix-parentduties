@@ -1,0 +1,79 @@
+{% extends "pretixpresale/event/base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% load rich_text %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <h2>
+        {{ title }}
+        <small>{% blocktrans trimmed with code=order.code %}Order {{ code }}{% endblocktrans %}</small>
+    </h2>
+    {% if not signups %}
+        <div class="alert alert-info">{% trans "No parent duty registered for this order." %}</div>
+    {% endif %}
+    {% for s in signups %}
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">{{ s.text }} <small>({{ s.status_text }})</small></h3>
+            </div>
+            <div class="panel-body">
+                {% if s.slot and s.slot.description %}{{ s.slot.description|rich_text }}{% endif %}
+                {% if s.helper_name %}<p>{% trans "Helper:" %} {{ s.helper_name }}{% if s.helper_phone %} ({{ s.helper_phone }}){% endif %}</p>{% endif %}
+                {% if s.form %}
+                    <form method="post" class="form-horizontal">
+                        {% csrf_token %}
+                        <input type="hidden" name="signup" value="{{ s.pk }}">
+                        <p><strong>{% trans "Change duty" %}</strong></p>
+                        {% if s.form.errors %}
+                            <div class="alert alert-danger">
+                                {% for field, errors in s.form.errors.items %}{% for e in errors %}{{ e }}<br>{% endfor %}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <ul class="list-group">
+                            {% for sl in s.form.slots %}
+                                <li class="list-group-item{% if sl.full %} text-muted{% endif %}">
+                                    <label style="display:block; font-weight:normal; margin:0;">
+                                        <input type="radio" name="{{ s.form.slot.html_name }}" value="{{ sl.pk }}"
+                                               {% if sl.checked and not sl.full %}checked{% endif %} {% if sl.full %}disabled{% endif %}>
+                                        <strong>{{ sl.name }}</strong>
+                                        {% if sl.date_display %}&middot; {{ sl.date_display }}{% endif %}
+                                        {% if sl.time_display %}&middot; {{ sl.time_display }}{% endif %}
+                                        <span class="pull-right">
+                                            {% if sl.pk == s.slot_id %}
+                                                <span class="label label-primary">{% trans "your duty" %}</span>
+                                            {% elif sl.full %}
+                                                <span class="label label-default">{% trans "full" %}</span>
+                                            {% elif sl.free is not None %}
+                                                {% blocktrans trimmed count free=sl.free %}{{ free }} spot left{% plural %}{{ free }} spots left{% endblocktrans %}
+                                            {% endif %}
+                                        </span>
+                                    </label>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if s.form.helper_name %}{% bootstrap_field s.form.helper_name layout="checkout" %}{% endif %}
+                        {% if s.form.helper_phone %}{% bootstrap_field s.form.helper_phone layout="checkout" %}{% endif %}
+                        <div class="row">
+                            <div class="col-md-4 col-md-offset-8 col-sm-6 col-sm-offset-6">
+                                <button class="btn btn-block btn-primary" type="submit">{% trans "Save change" %}</button>
+                            </div>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+    {% if can_change and deadline %}
+        <p class="text-muted">
+            {% blocktrans trimmed with date=deadline|date:"SHORT_DATETIME_FORMAT" %}
+                You can switch to another duty until {{ date }}. Withdrawing is not possible – if you
+                really cannot make it, please contact us.
+            {% endblocktrans %}
+        </p>
+    {% elif signups %}
+        <p class="text-muted">
+            {% trans "If you need to change your duty, please contact us." %}
+        </p>
+    {% endif %}
+    <p><a href="{{ order_url }}" class="btn btn-default">{% trans "Back to your order" %}</a></p>
+{% endblock %}

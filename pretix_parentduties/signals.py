@@ -290,9 +290,13 @@ def presale_order_box(sender, order, request=None, **kwargs):
     for s in signups:
         s.text = duty_text(s)
         s.status_text = status_label(s)
+    from .placeholders import duty_url
+    from .services import changeable_signups
     return get_template("pretix_parentduties/presale_order_info.html").render({
         "signups": signups,
         "title": sender.settings.parentduties_title,
+        "duty_url": duty_url(order),
+        "can_change": bool(changeable_signups(order)),
     }, request=request)
 
 

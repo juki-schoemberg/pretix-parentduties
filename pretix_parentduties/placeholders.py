@@ -7,6 +7,7 @@ from django.utils.translation import gettext as _, gettext_lazy, pgettext
 
 from pretix.base.services.placeholders import SimpleFunctionalTextPlaceholder
 from pretix.base.signals import layout_text_variables, register_text_placeholders
+from pretix.multidomain.urlreverse import eventreverse_absolute
 
 from .models import DutySignup, DutySlot
 from .services import family_code, status_label
@@ -113,6 +114,21 @@ def duty_all_text(order):
     return "\n".join(line for line in lines if line)
 
 
+def duty_url(order):
+    """Deeplink to the parents' duty page (secret link, no login needed)."""
+    if order is None or not order.pk or not order.parentduty_signups.exists():
+        return ""
+    return eventreverse_absolute(order.event, "plugins:pretix_parentduties:order.duty", kwargs={
+        "order": order.code, "secret": order.secret,
+    })
+
+
+def duty_url_sample(event):
+    return eventreverse_absolute(event, "plugins:pretix_parentduties:order.duty", kwargs={
+        "order": "ABC12", "secret": "f0pzcwe9yhhj4ur8",
+    })
+
+
 def free_spots(event):
     total = 0
     for slot in DutySlot.objects.filter(event=event, active=True).with_occupancy():
@@ -137,6 +153,8 @@ def order_value(name, order):
     """Render one of the order placeholders as string (never ``None``)."""
     if name == "parent_duty_all":
         return duty_all_text(order)
+    if name == "parent_duty_url":
+        return duty_url(order)
     func = ORDER_VALUES[name][1]
     try:
         value = func(primary_signup(order))
@@ -158,6 +176,9 @@ def register_placeholders(sender, **kwargs):
             (lambda s: lambda event: str(s()))(sample),
         ))
     ph.append(SimpleFunctionalTextPlaceholder(
+        "parent_duty_url", ["order"], duty_url, duty_url_sample,
+    ))
+    ph.append(SimpleFunctionalTextPlaceholder(
         "parent_duty_free_spots", ["event"], free_spots, lambda event: "12",
     ))
     ph.append(SimpleFunctionalTextPlaceholder(
@@ -178,4 +199,9 @@ def register_layout_variables(sender, **kwargs):
             "editor_sample": sample(),
             "evaluate": (lambda n: lambda op, order, event: order_value(n, order))(name),
         }
+    variables["parentduties_parent_duty_url"] = {
+        "label": gettext_lazy("Link to the parent duty"),
+        "editor_sample": "https://pretix.eu/demo/democon/order/ABC12/f0pzcwe9yhhj4ur8/parentduty/",
+        "evaluate": lambda op, order, event: duty_url(order),
+    }
     return variables

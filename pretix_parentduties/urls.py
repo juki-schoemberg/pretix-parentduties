@@ -16,3 +16,8 @@ urlpatterns = [
     path(prefix + "items/", views.ItemsView.as_view(), name="items"),
     path(prefix + "settings/", views.SettingsView.as_view(), name="settings"),
 ]
+
+# Presale (event domain): the parents' view of their duty, also used as deeplink in e-mails.
+event_patterns = [
+    path("order/<str:order>/<str:secret>/parentduty/", views.OrderDutyView.as_view(), name="order.duty"),
+]

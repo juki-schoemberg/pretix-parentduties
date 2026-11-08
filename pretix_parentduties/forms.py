@@ -2,6 +2,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
 
 from pretix.base.forms import I18nModelForm, SettingsForm
+from pretix.base.reldate import RelativeDateTimeField
 from i18nfield.forms import I18nFormField, I18nTextarea, I18nTextInput
 
 from . import conf
@@ -123,6 +124,42 @@ class DutyChoiceForm(forms.Form):
             "helper_name": (d.get("helper_name") or "").strip() if choice == CHOICE_SLOT else "",
             "helper_phone": (d.get("helper_phone") or "").strip() if choice == CHOICE_SLOT else "",
         }
+
+
+class DutyChangeForm(forms.Form):
+    """Self-service change of one signup on the order page (switch only, no withdrawal)."""
+
+    def __init__(self, *args, event, signup, slots, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.event = event
+        self.signup = signup
+        self.slots = slots
+        s = event.settings
+        self.fields["slot"] = forms.ChoiceField(
+            label=_("Duty"), choices=[(str(sl.pk), str(sl.name)) for sl in slots],
+            error_messages={"required": _("Please choose a duty.")},
+        )
+        if s.parentduties_ask_name != conf.ASK_OFF:
+            self.fields["helper_name"] = forms.CharField(
+                label=_("Who will help?"), max_length=255,
+                required=s.parentduties_ask_name == conf.ASK_REQUIRED,
+                help_text=_("Name of the person who will take on the duty."),
+            )
+        if s.parentduties_ask_phone != conf.ASK_OFF:
+            self.fields["helper_phone"] = forms.CharField(
+                label=_("Phone number"), max_length=64,
+                required=s.parentduties_ask_phone == conf.ASK_REQUIRED,
+                help_text=_("So we can reach you on the day of the duty."),
+            )
+
+    def clean_slot(self):
+        value = self.cleaned_data["slot"]
+        slot = {str(sl.pk): sl for sl in self.slots}[value]
+        if slot.pk != self.signup.slot_id and slot.is_full():
+            raise forms.ValidationError(
+                _("The duty “%(name)s” is already full, please choose another one.") % {"name": slot.name}
+            )
+        return slot
 
 
 # -------------------------------------------------------------- backend
@@ -265,6 +302,12 @@ class ParentDutySettingsForm(SettingsForm):
     parentduties_ask_phone = forms.ChoiceField(label=_("Ask for a phone number"), choices=ASK_CHOICES)
     parentduties_confirm_checkbox = forms.BooleanField(
         label=_("Commitment checkbox on the confirmation page"), required=False,
+    )
+    parentduties_change_until = RelativeDateTimeField(
+        label=_("Parents may change their duty until"), required=False,
+        help_text=_("Until then, parents can switch to another duty with free spots via their order page "
+                    "or the link in {parent_duty_url}. Withdrawing is not possible. "
+                    "Leave empty if only admins may change duties."),
     )
     parentduties_new_items_trigger = forms.BooleanField(
         label=_("New products trigger the parent duty"), required=False,

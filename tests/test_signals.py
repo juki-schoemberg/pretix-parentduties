@@ -1,5 +1,7 @@
 import json
 
+from django.utils import translation
+
 from pretix.base.models import Event, Item, Order, OrderPosition
 
 from pretix_parentduties.models import DutySignup, DutySlot, ItemDutyConfig
@@ -159,6 +161,7 @@ def test_dashboard_widget(event, item, slot, slot2):
     st = stats(event)
     assert st["capacity"] == 7 and st["occupied"] == 1
     assert [s.pk for s in st["empty"]] == [slot2.pk]
-    w = widget(event)[0]
+    with translation.override("en"):
+        w = widget(event)[0]
     assert "1 of 7" in w["content"]
     assert widget(event, lazy=True)[0]["content"] is None

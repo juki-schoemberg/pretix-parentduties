@@ -44,6 +44,7 @@ def url(event, path=""):
 def test_pages_render(admin_client, event, item, slot):
     order = make_order(event, item)
     create_signups_for_order(order, {"choice": "slot", "slots": [slot.pk], "helper_name": "Anna"})
+    assert "parentduties_change_until" in admin_client.get(url(event, "settings/")).content.decode()
     for path in ("", "slots/add", f"slots/{slot.pk}/", "signups/", "signups/?review=1", "items/", "settings/"):
         r = admin_client.get(url(event, path))
         assert r.status_code == 200, path

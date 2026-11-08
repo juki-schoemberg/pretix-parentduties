@@ -1,6 +1,7 @@
 import datetime
 
 import pytest
+from django.utils import translation
 from django.utils.timezone import now
 from django_scopes import scopes_disabled
 
@@ -10,6 +11,13 @@ def no_scope(db):
     """pretix scopes almost all managers; disable that for the tests."""
     with scopes_disabled():
         yield
+
+
+@pytest.fixture(autouse=True)
+def reset_language():
+    """Requests in German must not leak the active language into later tests."""
+    yield
+    translation.activate("en")
 
 
 @pytest.fixture

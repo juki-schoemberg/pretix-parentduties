@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pretix-parentduties\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-08 16:34+0000\n"
+"POT-Creation-Date: 2026-11-08 17:32+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: JuKi Schömberg e.V.\n"
 "Language-Team: German\n"
@@ -37,27 +37,27 @@ msgstr "Elterndienst"
 msgid "Please choose your parent duty."
 msgstr "Bitte wählt euren Elterndienst aus."
 
-#: checkoutflow.py:84 signals.py:102
+#: checkoutflow.py:85 signals.py:102 views.py:362
 msgid "The duty you chose has just been filled up, please choose another one."
 msgstr "Der Dienst ist gerade voll geworden, bitte wählt einen anderen."
 
-#: checkoutflow.py:117
+#: checkoutflow.py:119
 msgid ""
 "We had difficulties processing your input. Please review the errors below."
 msgstr ""
 "Bei euren Angaben hat etwas nicht gepasst. Bitte schaut euch die Hinweise "
 "unten an."
 
-#: checkoutflow.py:141
+#: checkoutflow.py:143
 msgid "Other duties"
 msgstr "Weitere Dienste"
 
-#: conf.py:15 forms.py:133
+#: conf.py:16 forms.py:170
 #: templates/pretix_parentduties/confirm_content.html:5
 msgid "Parent duty"
 msgstr "Elterndienst"
 
-#: conf.py:20
+#: conf.py:21
 msgid ""
 "Our events only work because families lend a hand. Please pick one duty your"
 " family would like to take on – it only takes a minute, and you only need to"
@@ -67,168 +67,168 @@ msgstr ""
 "euch bitte einen Dienst aus, den eure Familie übernimmt – das dauert nur "
 "eine Minute und ist pro Familie nur einmal nötig."
 
-#: forms.py:14
+#: forms.py:15
 msgctxt "parentduties_ask"
 msgid "Don't ask"
 msgstr "Nicht abfragen"
 
-#: forms.py:15
+#: forms.py:16
 msgctxt "parentduties_ask"
 msgid "Optional"
 msgstr "Optional"
 
-#: forms.py:16
+#: forms.py:17
 msgctxt "parentduties_ask"
 msgid "Required"
 msgstr "Pflicht"
 
-#: forms.py:41
+#: forms.py:42
 msgid "A sibling is already registered"
 msgstr "Ein Geschwisterkind ist schon angemeldet"
 
-#: forms.py:43
+#: forms.py:44
 msgid "Unfortunately we cannot take on a duty"
 msgstr "Wir können leider keinen Dienst übernehmen"
 
-#: forms.py:45
+#: forms.py:46
 msgid "Decide later"
 msgstr "Später entscheiden"
 
-#: forms.py:50 forms.py:197 forms.py:210 models.py:138 reports.py:66
-#: templates/pretix_parentduties/checkout_step.html:20
+#: forms.py:51 forms.py:139 forms.py:234 forms.py:247 models.py:138
+#: reports.py:66 templates/pretix_parentduties/checkout_step.html:20
 #: templates/pretix_parentduties/signups.html:34
 #: templates/pretix_parentduties/slots.html:22
 msgid "Duty"
 msgstr "Dienst"
 
-#: forms.py:51 forms.py:227 views.py:192
+#: forms.py:52 forms.py:140 forms.py:264 views.py:193
 msgid "Please choose a duty."
 msgstr "Bitte wählt einen Dienst aus."
 
-#: forms.py:54
+#: forms.py:55
 msgid "Order code of the sibling's registration"
 msgstr "Bestellcode der Geschwister-Anmeldung"
 
-#: forms.py:55
+#: forms.py:56
 msgid "You can find it in the confirmation email of the other registration."
 msgstr "Den findet ihr in der Bestätigungsmail der anderen Anmeldung."
 
-#: forms.py:59
+#: forms.py:60
 msgid "Reason"
 msgstr "Begründung"
 
-#: forms.py:63
+#: forms.py:64 forms.py:144
 msgid "Who will help?"
 msgstr "Wer hilft mit?"
 
-#: forms.py:65
+#: forms.py:66 forms.py:146
 msgid "Name of the person who will take on the duty."
 msgstr "Name der Person, die den Dienst übernimmt."
 
-#: forms.py:69
+#: forms.py:70 forms.py:150
 msgid "Phone number"
 msgstr "Telefonnummer"
 
-#: forms.py:70
+#: forms.py:71 forms.py:152
 msgid "So we can reach you on the day of the duty."
 msgstr "Damit wir euch am Tag des Dienstes erreichen."
 
-#: forms.py:86
+#: forms.py:87
 msgid "Please choose either duties or one of the alternatives."
 msgstr "Bitte wählt entweder Dienste oder eine der Alternativen."
 
-#: forms.py:89
+#: forms.py:90
 #, python-format
 msgid "You can choose at most %(max)s duties."
 msgstr "Ihr könnt höchstens %(max)s Dienste wählen."
 
-#: forms.py:95
+#: forms.py:96 forms.py:160
 #, python-format
 msgid "The duty “%(name)s” is already full, please choose another one."
 msgstr "Der Dienst „%(name)s“ ist schon voll, bitte wählt einen anderen."
 
-#: forms.py:104
+#: forms.py:105
 msgid "Please enter the order code of the other registration."
 msgstr "Bitte gebt den Bestellcode der anderen Anmeldung ein."
 
-#: forms.py:107
+#: forms.py:108
 msgid "Please tell us briefly why."
 msgstr "Bitte sagt uns kurz, warum."
 
-#: forms.py:110 forms.py:112
+#: forms.py:111 forms.py:113
 msgid "This field is required."
 msgstr "Dieses Feld ist erforderlich."
 
-#: forms.py:184
+#: forms.py:221
 msgid "The end time must not be before the start time."
 msgstr "Das Ende darf nicht vor dem Beginn liegen."
 
-#: forms.py:205 templates/pretix_parentduties/signups.html:24
+#: forms.py:242 templates/pretix_parentduties/signups.html:24
 #: templates/pretix_parentduties/signups.html:73
 msgid "Order code"
 msgstr "Bestellcode"
 
-#: forms.py:207 models.py:135
+#: forms.py:244 models.py:135
 msgid "Type"
 msgstr "Art"
 
-#: forms.py:208 models.py:110
+#: forms.py:245 models.py:110
 msgid "Own duty"
 msgstr "Eigener Dienst"
 
-#: forms.py:208 models.py:112 templates/pretix_parentduties/signups.html:66
+#: forms.py:245 models.py:112 templates/pretix_parentduties/signups.html:66
 msgid "Exempt"
 msgstr "Befreit"
 
-#: forms.py:222
+#: forms.py:259
 msgid "Unknown order code."
 msgstr "Unbekannter Bestellcode."
 
-#: forms.py:232
+#: forms.py:269
 msgid "Order code of the family's registration"
 msgstr "Bestellcode der Familien-Anmeldung"
 
-#: forms.py:237
+#: forms.py:274
 msgid "Checkout step live"
 msgstr "Checkout-Schritt live"
 
-#: forms.py:238
+#: forms.py:275
 msgid ""
 "Only turn this on once all duties are set up. Before that, nobody is asked."
 msgstr ""
 "Erst einschalten, wenn alle Dienste angelegt sind. Vorher wird niemand "
 "gefragt."
 
-#: forms.py:241
+#: forms.py:278
 msgid "Step is mandatory"
 msgstr "Schritt verpflichtend"
 
-#: forms.py:242
+#: forms.py:279
 msgid "If unchecked, parents can postpone their decision."
 msgstr ""
 "Wenn nicht angehakt, können Eltern die Entscheidung auf später verschieben."
 
-#: forms.py:244
+#: forms.py:281
 msgid "Title of the step"
 msgstr "Titel des Schritts"
 
-#: forms.py:245
+#: forms.py:282
 msgid "Introduction"
 msgstr "Einleitungstext"
 
-#: forms.py:247
+#: forms.py:284
 msgid "Offer “Unfortunately we cannot take on a duty”"
 msgstr "„Wir können leider nicht“-Option anbieten"
 
-#: forms.py:250
+#: forms.py:287
 msgid "Require a reason for “cannot help”"
 msgstr "Begründung bei „kann nicht“ verlangen"
 
-#: forms.py:253
+#: forms.py:290
 msgid "Sibling fallback via order code"
 msgstr "Geschwister-Fallback per Bestellcode"
 
-#: forms.py:254
+#: forms.py:291
 msgid ""
 "Families with different email addresses can refer to the registration of a "
 "sibling."
@@ -236,31 +236,47 @@ msgstr ""
 "Familien mit unterschiedlichen E-Mail-Adressen können auf die Anmeldung "
 "eines Geschwisterkinds verweisen."
 
-#: forms.py:257
+#: forms.py:294
 msgid "Allow several duties per family"
 msgstr "Mehrere Dienste pro Familie erlauben"
 
-#: forms.py:260
+#: forms.py:297
 msgid "Maximum number of duties per family"
 msgstr "Höchstzahl Dienste pro Familie"
 
-#: forms.py:263
+#: forms.py:300
 msgid "Ask for the name of the helping person"
 msgstr "Name der helfenden Person abfragen"
 
-#: forms.py:265
+#: forms.py:302
 msgid "Ask for a phone number"
 msgstr "Telefonnummer abfragen"
 
-#: forms.py:267
+#: forms.py:304
 msgid "Commitment checkbox on the confirmation page"
 msgstr "Verpflichtungs-Checkbox auf der Bestätigungsseite"
 
-#: forms.py:270
+#: forms.py:307
+msgid "Parents may change their duty until"
+msgstr "Eltern dürfen ihren Dienst selbst ändern bis"
+
+#: forms.py:308
+#, python-brace-format
+msgid ""
+"Until then, parents can switch to another duty with free spots via their "
+"order page or the link in {parent_duty_url}. Withdrawing is not possible. "
+"Leave empty if only admins may change duties."
+msgstr ""
+"Bis dahin können Eltern über ihre Bestellseite oder den Link aus "
+"{parent_duty_url} zu einem anderen Dienst mit freien Plätzen wechseln. "
+"Zurückziehen ist nicht möglich. Leer lassen, wenn nur Admins Dienste ändern "
+"dürfen."
+
+#: forms.py:313
 msgid "New products trigger the parent duty"
 msgstr "Neue Produkte lösen Pflicht aus"
 
-#: forms.py:271
+#: forms.py:314
 msgid "Default for products that have not been configured explicitly."
 msgstr "Standard für Produkte, die nicht ausdrücklich eingestellt sind."
 
@@ -297,22 +313,28 @@ msgstr "Elterndienst auf einen anderen Dienst verschoben."
 msgid "Parent duty changed ({kind}, {status})."
 msgstr "Elterndienst geändert ({kind}, {status})."
 
-#: logentrytypes.py:24
+#: logentrytypes.py:18
+#, python-brace-format
+#| msgid "Parent duty slot “{name}” changed."
+msgid "Parent duty changed by the customer to “{slot_name}”."
+msgstr "Elterndienst von den Eltern auf „{slot_name}“ geändert."
+
+#: logentrytypes.py:25
 #, python-brace-format
 msgid "Parent duty slot “{name}” created."
 msgstr "Dienst „{name}“ angelegt."
 
-#: logentrytypes.py:25
+#: logentrytypes.py:26
 #, python-brace-format
 msgid "Parent duty slot “{name}” changed."
 msgstr "Dienst „{name}“ geändert."
 
-#: logentrytypes.py:26
+#: logentrytypes.py:27
 #, python-brace-format
 msgid "Parent duty slot “{name}” deleted."
 msgstr "Dienst „{name}“ gelöscht."
 
-#: logentrytypes.py:27
+#: logentrytypes.py:28
 msgid "Products triggering the parent duty changed."
 msgstr "Produkte mit Elterndienst-Pflicht geändert."
 
@@ -427,125 +449,130 @@ msgstr ""
 "Wenn angehakt, werden Käufer*innen dieses Produkts im Checkout nach einem "
 "Elterndienst gefragt."
 
-#: placeholders.py:31
+#: placeholders.py:32
 #, python-format
 msgctxt "parentduties time display"
 msgid "%(time)s"
 msgstr "%(time)s Uhr"
 
-#: placeholders.py:45
+#: placeholders.py:46
 msgid "not yet assigned"
 msgstr "noch nicht zugeteilt"
 
-#: placeholders.py:49
+#: placeholders.py:50
 #, python-format
 msgid "covered by your registration %(code)s"
 msgstr "über eure Anmeldung %(code)s abgedeckt"
 
-#: placeholders.py:50
+#: placeholders.py:51
 msgid "covered by a sibling's registration (under review)"
 msgstr "über eine Geschwister-Anmeldung abgedeckt (in Klärung)"
 
-#: placeholders.py:52 services.py:426
+#: placeholders.py:53 services.py:490
 msgid "exempt"
 msgstr "befreit"
 
-#: placeholders.py:54
+#: placeholders.py:55
 msgid "no duty"
 msgstr "kein Dienst"
 
-#: placeholders.py:75
+#: placeholders.py:76
 msgid "Parent duty of the order"
 msgstr "Elterndienst der Bestellung"
 
-#: placeholders.py:76 placeholders.py:153
+#: placeholders.py:77 placeholders.py:171
 msgid "Cake Monday, 07/13/2027, 14:00–16:00"
 msgstr "Kuchen Montag, 13.07.2027, 14:00–16:00 Uhr"
 
-#: placeholders.py:77
+#: placeholders.py:78
 msgid "Name of the parent duty"
 msgstr "Name des Elterndienstes"
 
-#: placeholders.py:78 placeholders.py:175
+#: placeholders.py:79 placeholders.py:196
 msgid "Cake Monday"
 msgstr "Kuchen Montag"
 
-#: placeholders.py:79
+#: placeholders.py:80
 msgid "Description of the parent duty"
 msgstr "Beschreibung des Elterndienstes"
 
-#: placeholders.py:81
+#: placeholders.py:82
 msgid "Please drop it off at the kitchen by 13:30"
 msgstr "Bitte bis 13:30 an der Küche abgeben"
 
-#: placeholders.py:82
+#: placeholders.py:83
 msgid "Category of the parent duty"
 msgstr "Kategorie des Elterndienstes"
 
-#: placeholders.py:83
+#: placeholders.py:84
 msgid "Cake"
 msgstr "Kuchen"
 
-#: placeholders.py:84
+#: placeholders.py:85
 msgid "Date of the parent duty"
 msgstr "Datum des Elterndienstes"
 
-#: placeholders.py:86
+#: placeholders.py:87
 msgid "Start time of the parent duty"
 msgstr "Beginn des Elterndienstes"
 
-#: placeholders.py:89
+#: placeholders.py:90
 msgid "End time of the parent duty"
 msgstr "Ende des Elterndienstes"
 
-#: placeholders.py:92
+#: placeholders.py:93
 msgid "Time of the parent duty"
 msgstr "Uhrzeit des Elterndienstes"
 
-#: placeholders.py:94
+#: placeholders.py:95
 msgid "Helper of the parent duty"
 msgstr "Helfende Person des Elterndienstes"
 
-#: placeholders.py:96
+#: placeholders.py:97
 msgid "Helper phone of the parent duty"
 msgstr "Telefon der helfenden Person"
 
-#: placeholders.py:98
+#: placeholders.py:99
 msgid "Status of the parent duty"
 msgstr "Status des Elterndienstes"
 
-#: placeholders.py:98 services.py:424
+#: placeholders.py:99 services.py:488
 msgid "committed"
 msgstr "zugesagt"
 
-#: placeholders.py:99
+#: placeholders.py:100
 msgid "Order code carrying the family's duty"
 msgstr "Bestellcode mit der eigentlichen Zusage der Familie"
 
-#: placeholders.py:101
+#: placeholders.py:102
 msgid "Note on the parent duty"
 msgstr "Notiz zum Elterndienst"
 
-#: placeholders.py:102
+#: placeholders.py:103
 msgid "We'll bring a gluten-free cake."
 msgstr "Wir bringen einen glutenfreien Kuchen."
 
-#: placeholders.py:132
+#: placeholders.py:148
 #, python-format
 msgid "%(n)s free"
 msgstr "%(n)s frei"
 
-#: placeholders.py:153
+#: placeholders.py:171
 msgid "Set-up Friday, 07/09/2027"
 msgstr "Aufbau Freitag, 09.07.2027"
 
-#: placeholders.py:165
+#: placeholders.py:186
 msgid "Cake Monday, 07/13/2027 (2 free)"
 msgstr "Kuchen Montag, 13.07.2027 (2 frei)"
 
-#: placeholders.py:174
+#: placeholders.py:195
 msgid "All parent duties of the order"
 msgstr "Alle Elterndienste der Bestellung"
+
+#: placeholders.py:203
+#| msgid "Time of the parent duty"
+msgid "Link to the parent duty"
+msgstr "Link zum Elterndienst"
 
 #: reports.py:19 signals.py:55 signals.py:222 signals.py:243
 #: templates/pretix_parentduties/base.html:3
@@ -591,19 +618,19 @@ msgstr "Familien-Bestellcode"
 msgid "Number of duties"
 msgstr "Anzahl Dienste"
 
-#: services.py:420
+#: services.py:484
 msgid "under review"
 msgstr "in Klärung"
 
-#: services.py:422
+#: services.py:486
 msgid "canceled"
 msgstr "storniert"
 
-#: services.py:425
+#: services.py:489
 msgid "covered by sibling"
 msgstr "über Geschwister abgedeckt"
 
-#: services.py:427
+#: services.py:491
 msgid "cannot help"
 msgstr "kann nicht"
 
@@ -633,16 +660,16 @@ msgid "Signups"
 msgstr "Zusagen"
 
 #: signals.py:231 templates/pretix_parentduties/items.html:3
-#: templates/pretix_parentduties/settings.html:28
+#: templates/pretix_parentduties/settings.html:29
 msgid "Products"
 msgstr "Produkte"
 
-#: signals.py:319
+#: signals.py:323
 msgctxt "shredder"
 msgid "Parent duty details"
 msgstr "Elterndienst-Angaben"
 
-#: signals.py:321
+#: signals.py:325
 msgid ""
 "This will remove helper names, phone numbers and notes of parent duties."
 msgstr ""
@@ -670,10 +697,12 @@ msgstr ""
 "Anmeldung müsst ihr nichts weiter tun."
 
 #: templates/pretix_parentduties/checkout_step.html:39
+#: templates/pretix_parentduties/order_duty.html:45
 msgid "full"
 msgstr "voll"
 
 #: templates/pretix_parentduties/checkout_step.html:41
+#: templates/pretix_parentduties/order_duty.html:47
 #, python-format
 msgid "%(free)s spot left"
 msgid_plural "%(free)s spots left"
@@ -705,6 +734,7 @@ msgid "A parent duty is already registered for your family – thank you!"
 msgstr "Für eure Familie ist schon ein Elterndienst eingetragen – danke!"
 
 #: templates/pretix_parentduties/confirm_content.html:19
+#: templates/pretix_parentduties/order_duty.html:21
 msgid "Helper:"
 msgstr "Helfende Person:"
 
@@ -731,6 +761,7 @@ msgid "additional"
 msgstr "zusätzlich"
 
 #: templates/pretix_parentduties/control_order_info.html:21
+#: templates/pretix_parentduties/order_duty.html:12
 msgid "No parent duty registered for this order."
 msgstr "Für diese Bestellung ist kein Elterndienst eingetragen."
 
@@ -739,6 +770,7 @@ msgid "Manage"
 msgstr "Verwalten"
 
 #: templates/pretix_parentduties/control_order_info.html:24
+#: templates/pretix_parentduties/presale_order_info.html:13
 msgid "Details"
 msgstr "Details"
 
@@ -800,10 +832,52 @@ msgid "This event has no products yet."
 msgstr "Diese Veranstaltung hat noch keine Produkte."
 
 #: templates/pretix_parentduties/items.html:30
-#: templates/pretix_parentduties/settings.html:32
+#: templates/pretix_parentduties/settings.html:33
 #: templates/pretix_parentduties/slot_form.html:24
 msgid "Save"
 msgstr "Speichern"
+
+#: templates/pretix_parentduties/order_duty.html:9
+#, python-format
+#| msgid "Order code"
+msgid "Order %(code)s"
+msgstr "Bestellung %(code)s"
+
+#: templates/pretix_parentduties/order_duty.html:26
+#| msgid "no duty"
+msgid "Change duty"
+msgstr "Dienst ändern"
+
+#: templates/pretix_parentduties/order_duty.html:43
+#| msgid "no duty"
+msgid "your duty"
+msgstr "euer Dienst"
+
+#: templates/pretix_parentduties/order_duty.html:58
+msgid "Save change"
+msgstr "Änderung speichern"
+
+#: templates/pretix_parentduties/order_duty.html:68
+#, python-format
+msgid ""
+"You can switch to another duty until %(date)s. Withdrawing is not possible –"
+" if you really cannot make it, please contact us."
+msgstr ""
+"Bis %(date)s könnt ihr zu einem anderen Dienst wechseln. Zurückziehen geht "
+"nicht – wenn ihr wirklich nicht könnt, meldet euch bitte bei uns."
+
+#: templates/pretix_parentduties/order_duty.html:75
+msgid "If you need to change your duty, please contact us."
+msgstr "Wenn ihr euren Dienst ändern müsst, meldet euch bitte bei uns."
+
+#: templates/pretix_parentduties/order_duty.html:78
+msgid "Back to your order"
+msgstr "Zurück zur Bestellung"
+
+#: templates/pretix_parentduties/presale_order_info.html:13
+#| msgid "Time of the parent duty"
+msgid "View or change duty"
+msgstr "Dienst ansehen oder ändern"
 
 #: templates/pretix_parentduties/settings.html:10
 msgid "Checkout step"
@@ -922,48 +996,57 @@ msgstr "Löschen"
 msgid "You haven't created any duty slots yet."
 msgstr "Ihr habt noch keine Dienste angelegt."
 
-#: views.py:83
+#: views.py:86
 msgid "The duty slot has been saved."
 msgstr "Der Dienst wurde gespeichert."
 
-#: views.py:100
+#: views.py:103
 msgid "The duty slot has been duplicated."
 msgstr "Der Dienst wurde dupliziert."
 
-#: views.py:114
+#: views.py:117
 msgid ""
 "This duty slot already has signups and has therefore only been deactivated."
 msgstr ""
 "Für diesen Dienst gibt es schon Zusagen, er wurde deshalb nur deaktiviert."
 
-#: views.py:120
+#: views.py:123
 msgid "The duty slot has been deleted."
 msgstr "Der Dienst wurde gelöscht."
 
-#: views.py:189
+#: views.py:190
 msgid "Note: the capacity of this duty is now exceeded."
 msgstr "Hinweis: Die Kapazität dieses Dienstes ist jetzt überschritten."
 
-#: views.py:199
+#: views.py:200
 msgid "Please assign a duty first."
 msgstr "Bitte zuerst einen Dienst zuteilen."
 
-#: views.py:211
+#: views.py:212
 msgid "No active parent duty found for this order code."
 msgstr "Zu diesem Bestellcode gibt es keinen aktiven Elterndienst."
 
-#: views.py:215
+#: views.py:216
 msgid "Unknown action."
 msgstr "Unbekannte Aktion."
 
-#: views.py:217 views.py:282
+#: views.py:218 views.py:285
 msgid "Your changes have been saved."
 msgstr "Deine Änderungen wurden gespeichert."
 
-#: views.py:237
+#: views.py:238
 msgid "The parent duty has been added."
 msgstr "Der Elterndienst wurde hinzugefügt."
 
-#: views.py:266
+#: views.py:269
 msgid "You do not have permission to change this."
 msgstr "Du hast keine Berechtigung, das zu ändern."
+
+#: views.py:352
+msgid "Your duty can no longer be changed."
+msgstr "Euer Dienst kann nicht mehr geändert werden."
+
+#: views.py:364
+#| msgid "The parent duty has been added."
+msgid "Your parent duty has been changed. Thank you!"
+msgstr "Euer Elterndienst wurde geändert. Danke!"

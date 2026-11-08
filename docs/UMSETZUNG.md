@@ -1,6 +1,6 @@
 # Umsetzungsstand
 
-Stand: 08.11.2026, Version 0.1.0, getestet gegen pretix 2026.9.0 (Python 3.13).
+Stand: 08.11.2026, Version 0.2.0, getestet gegen pretix 2026.9.0 (Python 3.13).
 
 ## Fertig (Ausbaustufe 1 / MVP)
 
@@ -9,6 +9,22 @@ Alles aus Stufe 1 des Konzepts: Slots anlegen und duplizieren, Checkout-Schritt
 Lebenszyklus, Backend-Listen und Eingriffe, alle Platzhalter, Dashboard-Widget,
 Report-Felder. Zusätzlich schon aus Stufe 2: Ticket-Layout-Variablen und die
 Zusagen in der REST-API der Bestellung (`plugin_data`).
+
+## Ausbaustufe 2 (Teil)
+
+- **Selbständerung bis Frist:** Einstellung „Eltern dürfen ihren Dienst selbst ändern bis“
+  (absolut oder relativ zur Veranstaltung, leer = nur Admins). Bis dahin wechseln Eltern auf
+  der Dienst-Seite zu einem anderen Slot mit freien Plätzen und ändern Name/Telefon.
+  **Zurückziehen geht nicht** – die Seite bietet nur Slots an, keine Alternativen
+  („kann nicht“, Geschwister, später). Änderbar sind eigene Dienste (auch offene) und
+  „kann nicht“ (wird dann zu einem Dienst); Geschwister-Zusagen ändert die Familie an der
+  Wurzel-Bestellung, Befreiungen bleiben Admin-Sache. Kapazität wird unter Zeilensperre
+  geprüft, jede Änderung landet im Bestell-Log.
+- **Deeplink:** Platzhalter `{parent_duty_url}` (auch als Ticket-Layout-Variable) führt per
+  geheimem Bestell-Link ohne Login direkt auf die Dienst-Seite
+  `/<veranstalter>/<event>/order/<code>/<secret>/parentduty/`. Nach der Frist ist sie nur
+  noch lesbar. Die Box auf der Bestellseite verlinkt ebenfalls dorthin.
+- **Englisch:** Quelltexte sind englisch; neben `de` liegt jetzt ein `en`-Katalog bei.
 
 ## Bewusste Abweichungen vom Konzept
 
@@ -29,8 +45,7 @@ der Cart-Session unter `pretix_parentduties` und landet über
 
 ## Offen
 
-- Stufe 2: Eltern ändern ihren Dienst selbst bis zur Frist (Einstellung noch nicht angelegt),
-  Report-Vorlagen als JSON unter `docs/reports/`, eigenes REST-Viewset für Slots.
+- Rest von Stufe 2: Report-Vorlagen als JSON unter `docs/reports/`, eigenes REST-Viewset für Slots.
 - Stufe 3: Warteliste, Vereins-App / pretix-MCP.
 - Report-Generator: lokal nicht installierbar (er pinnt `pretix==2026.6.0`), die
   Report-Tests laufen in CI, sobald er sich installieren lässt, sonst werden sie übersprungen.

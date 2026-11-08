@@ -5,9 +5,11 @@ Everything here is strictly scoped to a single event.
 import logging
 
 from django.db import transaction
+from django.utils.timezone import now
 from django.utils.translation import gettext as _
 
 from pretix.base.models import Order
+from pretix.base.reldate import RelativeDateWrapper
 
 from .models import DutySignup, DutySlot, ItemDutyConfig
 
@@ -330,6 +332,68 @@ def delete_order_signups(order):
     for signup in signups:
         _flag_dependents(signup, "family_has_no_duty")
     DutySignup.objects.filter(pk__in=[s.pk for s in signups]).delete()
+
+
+# --------------------------------------------------------- self-service change
+
+def change_deadline(event):
+    """Datetime until which parents may change their duty, or ``None`` (admins only)."""
+    wrapper = event.settings.get("parentduties_change_until", as_type=RelativeDateWrapper)
+    if not wrapper:
+        return None
+    return wrapper.datetime(event)
+
+
+def can_change(event):
+    deadline = change_deadline(event)
+    return bool(deadline and now() <= deadline and is_live(event))
+
+
+def changeable_signups(order):
+    """Signups the parents may change themselves.
+
+    Only own duties (assigned or still open) and "cannot help" can be changed into a
+    slot. Siblings change at the root order, exemptions are admin decisions. There is
+    no way to withdraw: the result is always a slot.
+    """
+    if order.status not in VALID_ORDER_STATES or not can_change(order.event):
+        return []
+    return [
+        s for s in order.parentduty_signups.select_related("slot").order_by("-primary", "id")
+        if s.status != DutySignup.STATUS_CANCELED
+        and s.kind in (DutySignup.KIND_SLOT, DutySignup.KIND_CANNOT_HELP)
+    ]
+
+
+def customer_change(signup, slot, helper_name=None, helper_phone=None):
+    """Move a signup to ``slot`` on behalf of the parents. Raises :class:`SlotFull`."""
+    event = signup.event
+    with transaction.atomic():
+        locked = _lock_slot(event, slot.pk)
+        if locked is None or not locked.active:
+            raise SlotFull(slot)
+        if locked.pk != signup.slot_id and locked.is_full():
+            raise SlotFull(locked)
+        if locked.pk != signup.slot_id and signup.order.parentduty_signups.filter(
+            slot=locked, kind=DutySignup.KIND_SLOT,
+        ).exclude(pk=signup.pk).exclude(status=DutySignup.STATUS_CANCELED).exists():
+            raise SlotFull(locked)
+        old = signup.slot
+        if signup.kind == DutySignup.KIND_CANNOT_HELP:
+            signup.note = ""  # the "cannot help" reason no longer applies
+        signup.kind = DutySignup.KIND_SLOT
+        signup.slot = locked
+        signup.covered_by = None
+        # A free slot was chosen, so overbooking / open duty / "cannot help" are resolved.
+        signup.status = DutySignup.STATUS_ACTIVE
+        if helper_name is not None:
+            signup.helper_name = helper_name[:255]
+        if helper_phone is not None:
+            signup.helper_phone = helper_phone[:64]
+        signup.save()
+        _log(signup.order, "pretix_parentduties.signup.changed_by_customer", signup,
+             old_slot=old.pk if old else None, old_slot_name=str(old) if old else None)
+    return signup
 
 
 # ------------------------------------------------------- admin interventions

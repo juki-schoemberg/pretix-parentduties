@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -11,10 +12,12 @@ from django.views.generic import FormView, ListView, TemplateView
 from pretix.base.models import Event, Item
 from pretix.control.permissions import EventPermissionRequiredMixin
 from pretix.control.views.event import EventSettingsFormView, EventSettingsViewMixin
+from pretix.presale.views import EventViewMixin
+from pretix.presale.views.order import OrderDetailMixin
 
 from . import services
 from .forms import (
-    DutySlotForm, ParentDutySettingsForm, SignupAddForm, SignupLinkForm, SignupMoveForm,
+    DutyChangeForm, DutySlotForm, ParentDutySettingsForm, SignupAddForm, SignupLinkForm, SignupMoveForm,
 )
 from .models import DutySignup, DutySlot, ItemDutyConfig
 from .signals import PERM_READ, PERM_WRITE, has_perm
@@ -295,3 +298,96 @@ class SettingsView(EventSettingsViewMixin, EventSettingsFormView):
         return reverse("plugins:pretix_parentduties:settings", kwargs={
             "organizer": self.request.event.organizer.slug, "event": self.request.event.slug,
         })
+
+
+# ------------------------------------------------------------------ presale
+
+class OrderDutyView(EventViewMixin, OrderDetailMixin, TemplateView):
+    """The parents' page for their duty, linked from the order page and via ``{parent_duty_url}``.
+
+    Shows the duty; until the configured deadline it can be switched to another slot
+    with free spots. Withdrawing is not possible.
+    """
+
+    template_name = "pretix_parentduties/order_duty.html"
+
+    @cached_property
+    def changeable(self):
+        return services.changeable_signups(self.order)
+
+    def slots_for(self, signup):
+        order = self.order
+        positions = list(order.positions.all())
+        slots = services.available_slots(
+            order.event,
+            item_ids={p.item_id for p in positions},
+            subevent_ids={p.subevent_id for p in positions if p.subevent_id} if order.event.has_subevents else None,
+        )
+        taken = {s.slot_id for s in self.changeable if s.pk != signup.pk and s.slot_id}
+        return [sl for sl in slots if sl.pk not in taken]
+
+    def forms(self, data=None, only=None):
+        result = []
+        for signup in self.changeable:
+            bound = data if only == signup.pk else None
+            result.append(DutyChangeForm(
+                data=bound, event=self.request.event, signup=signup, slots=self.slots_for(signup),
+                prefix=f"duty-{signup.pk}",
+                initial={"slot": str(signup.slot_id) if signup.slot_id else None,
+                         "helper_name": signup.helper_name, "helper_phone": signup.helper_phone},
+            ))
+        return result
+
+    def get(self, request, *args, **kwargs):
+        return self.render(self.forms())
+
+    def post(self, request, *args, **kwargs):
+        try:
+            signup_id = int(request.POST.get("signup", ""))
+        except ValueError:
+            signup_id = None
+        forms = self.forms(data=request.POST, only=signup_id)
+        form = next((f for f in forms if f.signup.pk == signup_id), None)
+        if form is None:
+            messages.error(request, _("Your duty can no longer be changed."))
+            return redirect(self.request.path)
+        if form.is_valid():
+            try:
+                services.customer_change(
+                    form.signup, form.cleaned_data["slot"],
+                    helper_name=form.cleaned_data.get("helper_name"),
+                    helper_phone=form.cleaned_data.get("helper_phone"),
+                )
+            except services.SlotFull:
+                messages.error(request, _("The duty you chose has just been filled up, please choose another one."))
+            else:
+                messages.success(request, _("Your parent duty has been changed. Thank you!"))
+                return redirect(self.request.path)
+        return self.render(forms)
+
+    def render(self, forms):
+        from .placeholders import duty_text
+        signups = [
+            s for s in self.order.parentduty_signups.select_related(
+                "slot", "covered_by__order",
+            ).order_by("-primary", "id")
+            if s.status != DutySignup.STATUS_CANCELED
+        ]
+        forms_by_signup = {f.signup.pk: f for f in forms}
+        for s in signups:
+            s.text = duty_text(s)
+            s.status_text = services.status_label(s)
+            s.form = forms_by_signup.get(s.pk)
+            if s.form is not None:
+                for sl in s.form.slots:
+                    sl.free = sl.free_count()
+                    sl.full = sl.is_full() and sl.pk != s.slot_id
+                    sl.checked = str(sl.pk) == str(s.form["slot"].value())
+        return self.render_to_response(self.get_context_data(
+            order=self.order,
+            signups=signups,
+            deadline=services.change_deadline(self.request.event),
+            can_change=bool(forms),
+            title=self.request.event.settings.parentduties_title,
+            order_url=self.get_order_url(),
+        ))

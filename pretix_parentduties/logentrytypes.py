@@ -15,6 +15,7 @@ from pretix.base.logentrytypes import (
     "pretix_parentduties.signup.needs_review": _("Parent duty needs review ({reason})."),
     "pretix_parentduties.signup.moved": _("Parent duty moved to another duty."),
     "pretix_parentduties.signup.changed": _("Parent duty changed ({kind}, {status})."),
+    "pretix_parentduties.signup.changed_by_customer": _("Parent duty changed by the customer to “{slot_name}”."),
 })
 class ParentDutyOrderLogEntryType(OrderLogEntryType):
     pass
