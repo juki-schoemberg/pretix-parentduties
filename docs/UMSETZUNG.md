@@ -47,6 +47,7 @@ der Cart-Session unter `pretix_parentduties` und landet über
 
 - Rest von Stufe 2: Report-Vorlagen als JSON unter `docs/reports/`, eigenes REST-Viewset für Slots.
 - Stufe 3: Warteliste, Vereins-App / pretix-MCP.
-- Report-Generator: lokal nicht installierbar (er pinnt `pretix==2026.6.0`), die
-  Report-Tests laufen in CI, sobald er sich installieren lässt, sonst werden sie übersprungen.
+- Report-Generator: pinnt jetzt `pretix==2026.9.0` (Branch `ccr-0c449b7c-31iofq`), lokal
+  laufen die Report-Tests damit ohne `PRETIX_IGNORE_CONFLICTS` grün. Der CI-Job installiert
+  den Report-Generator vom Default-Branch und bleibt nicht-blockierend, bis der Pin dort gemergt ist.
 - Screenshots für das README.
