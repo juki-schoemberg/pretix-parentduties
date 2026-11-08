@@ -1,0 +1,35 @@
+{% extends "pretixcontrol/event/settings_base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% block inside %}
+    <h1>{% trans "Parent duties" %}</h1>
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        {% bootstrap_form_errors form %}
+        <fieldset>
+            <legend>{% trans "Checkout step" %}</legend>
+            {% bootstrap_field form.parentduties_live layout="control" %}
+            {% bootstrap_field form.parentduties_required layout="control" %}
+            {% bootstrap_field form.parentduties_title layout="control" %}
+            {% bootstrap_field form.parentduties_intro layout="control" %}
+            {% bootstrap_field form.parentduties_confirm_checkbox layout="control" %}
+        </fieldset>
+        <fieldset>
+            <legend>{% trans "Options for families" %}</legend>
+            {% bootstrap_field form.parentduties_sibling_code layout="control" %}
+            {% bootstrap_field form.parentduties_allow_cannot_help layout="control" %}
+            {% bootstrap_field form.parentduties_cannot_help_reason_required layout="control" %}
+            {% bootstrap_field form.parentduties_allow_multiple layout="control" %}
+            {% bootstrap_field form.parentduties_max_per_family layout="control" %}
+            {% bootstrap_field form.parentduties_ask_name layout="control" %}
+            {% bootstrap_field form.parentduties_ask_phone layout="control" %}
+        </fieldset>
+        <fieldset>
+            <legend>{% trans "Products" %}</legend>
+            {% bootstrap_field form.parentduties_new_items_trigger layout="control" %}
+        </fieldset>
+        <div class="form-group submit-group">
+            <button type="submit" class="btn btn-primary btn-save">{% trans "Save" %}</button>
+        </div>
+    </form>
+{% endblock %}

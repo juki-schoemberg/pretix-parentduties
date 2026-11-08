@@ -1,0 +1,27 @@
+{% load i18n %}
+<div class="panel panel-default items">
+    <div class="panel-heading">
+        <h3 class="panel-title">{% trans "Parent duties" %}</h3>
+    </div>
+    <div class="panel-body">
+        {% if signups %}
+            <ul class="list-unstyled">
+                {% for s in signups %}
+                    <li>
+                        {% if not s.primary %}<span class="text-muted">{% trans "additional" %}:</span>{% endif %}
+                        <strong>{{ s.text }}</strong>
+                        <span class="label {% if s.status == "active" %}label-success{% elif s.status == "needs_review" %}label-warning{% else %}label-default{% endif %}">{{ s.status_text }}</span>
+                        {% if s.helper_name %}&middot; {{ s.helper_name }}{% endif %}
+                        {% if s.helper_phone %}&middot; {{ s.helper_phone }}{% endif %}
+                        {% if s.note %}<br><small class="text-muted">{{ s.note }}</small>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">{% trans "No parent duty registered for this order." %}</p>
+        {% endif %}
+        <a href="{{ signups_url }}" class="btn btn-default btn-sm">
+            {% if can_write %}{% trans "Manage" %}{% else %}{% trans "Details" %}{% endif %}
+        </a>
+    </div>
+</div>

@@ -1,0 +1,110 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+hypothesis/
+htmlcov/
+
+# Translations
+# .mo files are intentionally committed so pip install git+... works without a build step
+
+# Django stuff (common)
+local_settings.py
+db.sqlite3
+media
+
+# Pretix plugin specific
+instance/
+var/
+pretix_env/
+data/
+pretix.cfg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python packaging
+pip-wheel-metadata/
+*.egg-info/
+dist/
+
+# mypy
+.mypy_cache/
+
+# Sphinx docs
+docs/_build/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Coverage and test reports
+.pytest_cache/
+
+# Secret/environment files
+.env
+.env.*
+secrets.yml
+
+# Claude assistant folder
+.claude/
+
+# Misc
+*.swp
+*.swo
+*.tmp
+
+# End of file

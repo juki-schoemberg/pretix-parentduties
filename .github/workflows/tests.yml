@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  schedule:
+    # weekly, to notice breaking changes in pretix master early
+    - cron: "17 4 * * 1"
+
+jobs:
+  test:
+    name: pytest (pretix ${{ matrix.pretix }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pretix: stable
+            install: "pretix"
+          - pretix: master
+            install: "pretix @ git+https://github.com/pretix/pretix.git@master#subdirectory=src"
+    continue-on-error: ${{ matrix.pretix == 'master' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext
+      - name: Install pretix
+        run: pip install "${{ matrix.install }}"
+      - name: Install plugin and test dependencies
+        run: pip install pytest pytest-django flake8 -e .
+      - name: Install pretix-reportgenerator (optional integration)
+        # Soft dependency; if it does not install against this pretix version, the
+        # report tests are skipped instead of failing the whole run.
+        run: pip install --no-deps "pretix-custom-reports @ git+https://github.com/juki-schoemberg/pretix-reportgenerator.git" || true
+      - name: Compile translations
+        run: cd pretix_parentduties && django-admin compilemessages
+      - name: flake8
+        run: flake8 pretix_parentduties tests
+      - name: Check for missing migrations
+        run: python -m pretix makemigrations pretix_parentduties --check --dry-run
+        env:
+          DJANGO_SETTINGS_MODULE: pretix.testutils.settings
+      - name: Run tests
+        run: pytest

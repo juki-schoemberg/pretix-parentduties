@@ -1,0 +1,100 @@
+{% extends "pretix_parentduties/base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% block subtitle %} <small>{% trans "Signups" %}</small>{% endblock %}
+{% block inner %}
+    <form class="form-inline row filter-form" method="get" style="margin-bottom: 15px">
+        <div class="col-md-12">
+            <select name="slot" class="form-control">
+                <option value="">{% trans "All duties" %}</option>
+                {% for s in slots %}<option value="{{ s.pk }}"{% if filters.slot == s.pk|stringformat:"s" %} selected{% endif %}>{{ s.full_display }}</option>{% endfor %}
+            </select>
+            <select name="tag" class="form-control">
+                <option value="">{% trans "All categories" %}</option>
+                {% for t in tags %}<option value="{{ t }}"{% if filters.tag == t %} selected{% endif %}>{{ t }}</option>{% endfor %}
+            </select>
+            <select name="status" class="form-control">
+                <option value="">{% trans "All states (without canceled)" %}</option>
+                {% for v, l in status_choices %}<option value="{{ v }}"{% if filters.status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}
+            </select>
+            <select name="kind" class="form-control">
+                <option value="">{% trans "All types" %}</option>
+                {% for v, l in kind_choices %}<option value="{{ v }}"{% if filters.kind == v %} selected{% endif %}>{{ l }}</option>{% endfor %}
+            </select>
+            <input type="text" name="order" class="form-control" placeholder="{% trans "Order code" %}" value="{{ filters.order|default:"" }}">
+            <label class="checkbox-inline"><input type="checkbox" name="review" value="1"{% if filters.review %} checked{% endif %}> {% trans "Only under review / cannot help" %}</label>
+            <button class="btn btn-primary" type="submit">{% trans "Filter" %}</button>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-condensed table-hover">
+            <thead>
+            <tr>
+                <th>{% trans "Order" %}</th>
+                <th>{% trans "Duty" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Helper" %}</th>
+                <th>{% trans "Children" %}</th>
+                <th>{% trans "Note" %}</th>
+                {% if can_write %}<th></th>{% endif %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for s in signups %}
+                <tr>
+                    <td><a href="{% url "control:event.order" organizer=request.organizer.slug event=request.event.slug code=s.order.code %}"><strong>{{ s.order.code }}</strong></a>
+                        {% if not s.primary %}<br><small class="text-muted">{% trans "additional" %}</small>{% endif %}</td>
+                    <td>{{ s.text }}{% if s.sibling_code and not s.covered_by %}<br><small class="text-muted">{% trans "Entered code:" %} {{ s.sibling_code }}</small>{% endif %}</td>
+                    <td><span class="label {% if s.status == "active" %}label-success{% elif s.status == "needs_review" %}label-warning{% else %}label-default{% endif %}">{{ s.status_text }}</span></td>
+                    <td>{{ s.helper_name }}{% if s.helper_phone %}<br><small>{{ s.helper_phone }}</small>{% endif %}</td>
+                    <td>{{ s.children|join:", " }}</td>
+                    <td><small>{{ s.note|linebreaksbr }}</small></td>
+                    {% if can_write %}
+                        <td class="text-right flip" style="white-space: nowrap">
+                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline" style="display:inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <select name="slot" class="form-control input-sm">
+                                    {% for sl in slots %}<option value="{{ sl.pk }}"{% if sl.pk == s.slot_id %} selected{% endif %}>{{ sl.full_display }}</option>{% endfor %}
+                                </select>
+                                <button class="btn btn-default btn-sm" name="action" value="move">{% trans "Move" %}</button>
+                            </form>
+                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline" style="display:inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                {% if s.status == "needs_review" %}<button class="btn btn-success btn-sm" name="action" value="confirm">{% trans "Confirm" %}</button>{% endif %}
+                                {% if s.kind != "exempt" %}<button class="btn btn-default btn-sm" name="action" value="exempt">{% trans "Exempt" %}</button>{% endif %}
+                                {% if s.kind == "sibling" %}<button class="btn btn-default btn-sm" name="action" value="unlink">{% trans "Unlink" %}</button>{% endif %}
+                                {% if s.status != "canceled" %}<button class="btn btn-danger btn-sm" name="action" value="cancel">{% trans "Cancel" %}</button>{% endif %}
+                            </form>
+                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline" style="display:inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <input type="text" name="code" class="form-control input-sm" size="7" placeholder="{% trans "Order code" %}">
+                                <button class="btn btn-default btn-sm" name="action" value="link">{% trans "Link to family" %}</button>
+                            </form>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% empty %}
+                <tr><td colspan="7"><em>{% trans "No signups found." %}</em></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "pretixcontrol/pagination.html" %}
+    {% if can_write %}
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3 class="panel-title">{% trans "Add a parent duty manually" %}</h3></div>
+            <div class="panel-body">
+                <form method="post" class="form-inline" action="{% url "plugins:pretix_parentduties:signup.add" organizer=request.organizer.slug event=request.event.slug %}">
+                    {% csrf_token %}
+                    {% bootstrap_field add_form.order layout="inline" %}
+                    {% bootstrap_field add_form.kind layout="inline" %}
+                    {% bootstrap_field add_form.slot layout="inline" %}
+                    <button class="btn btn-primary" type="submit">{% trans "Add" %}</button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

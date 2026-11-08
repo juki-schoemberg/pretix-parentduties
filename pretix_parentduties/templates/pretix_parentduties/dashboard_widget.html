@@ -1,0 +1,14 @@
+{% load i18n %}
+<div class="numwidget">
+    <span class="num">{{ occupied }}{% if capacity and not unlimited %}/{{ capacity }}{% endif %}</span>
+    <span class="text">
+        {% if capacity and not unlimited %}
+            {% blocktrans trimmed %}Parent duties: {{ occupied }} of {{ capacity }} spots taken{% endblocktrans %}
+        {% else %}
+            {% blocktrans trimmed %}Parent duties: {{ occupied }} spots taken{% endblocktrans %}
+        {% endif %}
+        {% if review %}<br><span class="text-warning">{% blocktrans trimmed count review=review %}{{ review }} under review{% plural %}{{ review }} under review{% endblocktrans %}</span>{% endif %}
+        {% if full %}<br><span class="text-success">{% blocktrans trimmed count n=full|length %}{{ n }} slot full{% plural %}{{ n }} slots full{% endblocktrans %}</span>{% endif %}
+        {% if empty %}<br><span class="text-danger">{% blocktrans trimmed count n=empty|length %}{{ n }} slot still empty{% plural %}{{ n }} slots still empty{% endblocktrans %}</span>{% endif %}
+    </span>
+</div>
