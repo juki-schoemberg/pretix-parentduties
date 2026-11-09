@@ -24,6 +24,7 @@
                     <th>{% trans "Date" %}</th>
                     <th>{% trans "Time" %}</th>
                     <th style="min-width: 160px">{% trans "Occupancy" %}</th>
+                    <th>{% trans "Waitlist" %}</th>
                     <th></th>
                 </tr>
                 </thead>
@@ -46,6 +47,7 @@
                                      style="width: {% if s.occupied == 0 %}100{% else %}{{ s.percent }}{% endif %}%; {% if s.occupied == 0 %}opacity: .25;{% endif %}"></div>
                             </div>
                         </td>
+                        <td>{% if s.waiting %}<a href="{% url "plugins:pretix_parentduties:waitlist" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">{{ s.waiting }}</a>{% endif %}</td>
                         <td class="text-right flip">
                             {% if can_write %}
                                 <form method="post" action="{% url "plugins:pretix_parentduties:slot.duplicate" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" style="display:inline">

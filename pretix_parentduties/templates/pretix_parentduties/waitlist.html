@@ -1,0 +1,64 @@
+{% extends "pretix_parentduties/base.html" %}
+{% load i18n %}
+{% block subtitle %} <small>{% trans "Waitlist" %}</small>{% endblock %}
+{% block inner %}
+    {% if mode == "off" %}
+        <div class="alert alert-info">
+            {% trans "The waitlist is turned off. You can turn it on in the settings." %}
+            <a href="{{ settings_url }}">{% trans "Settings" %}</a>
+        </div>
+    {% elif not active %}
+        <div class="alert alert-warning">
+            {% trans "The waitlist is currently not being processed (deadline passed, event started or checkout step not live)." %}
+        </div>
+    {% endif %}
+    <form class="form-inline" method="get" style="margin-bottom: 15px">
+        <select name="slot" class="form-control">
+            <option value="">{% trans "All duties" %}</option>
+            {% for s in slots %}<option value="{{ s.pk }}"{% if filters.slot == s.pk|stringformat:"s" %} selected{% endif %}>{{ s.full_display }}</option>{% endfor %}
+        </select>
+        <select name="status" class="form-control">
+            <option value=""{% if not status %} selected{% endif %}>{% trans "All states" %}</option>
+            {% for v, l in status_choices %}<option value="{{ v }}"{% if status == v %} selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit">{% trans "Filter" %}</button>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-condensed table-hover">
+            <thead>
+            <tr>
+                <th>{% trans "Waiting for" %}</th>
+                <th>{% trans "Order" %}</th>
+                <th>{% trans "Current duty" %}</th>
+                <th>{% trans "Since" %}</th>
+                <th>{% trans "Status" %}</th>
+                {% if can_write %}<th></th>{% endif %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for e in entries %}
+                <tr>
+                    <td><strong>{{ e.slot.full_display }}</strong></td>
+                    <td><a href="{% url "control:event.order" organizer=request.organizer.slug event=request.event.slug code=e.signup.order.code %}">{{ e.signup.order.code }}</a></td>
+                    <td>{{ e.signup.slot.full_display|default:"–" }}</td>
+                    <td>{{ e.created|date:"SHORT_DATETIME_FORMAT" }}{% if e.notified_at %}<br><small class="text-muted">{% trans "notified" %} {{ e.notified_at|date:"SHORT_DATETIME_FORMAT" }}</small>{% endif %}</td>
+                    <td>{{ e.get_status_display }}</td>
+                    {% if can_write %}
+                        <td class="text-right flip">
+                            {% if e.status == "waiting" %}
+                                <form method="post" action="{% url "plugins:pretix_parentduties:waitlist.remove" organizer=request.organizer.slug event=request.event.slug pk=e.pk %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-danger btn-sm">{% trans "Remove" %}</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                </tr>
+            {% empty %}
+                <tr><td colspan="6"><em>{% trans "Nobody is on the waitlist." %}</em></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "pretixcontrol/pagination.html" %}
+{% endblock %}

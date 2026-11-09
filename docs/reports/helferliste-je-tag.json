@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "name": "Helferliste je Tag",
+  "description": "Alle zugesagten Elterndienste, sortiert nach Datum, Uhrzeit und Dienst. Vorlage aus pretix-parentduties.",
+  "generator": "pretix-parentduties",
+  "meta": {},
+  "definition": {
+    "schema_version": 1,
+    "base": "order",
+    "columns": [
+      {"field": "plugin.pretix_parentduties.date", "label": "Datum"},
+      {"field": "plugin.pretix_parentduties.time_from", "label": "von"},
+      {"field": "plugin.pretix_parentduties.time_to", "label": "bis"},
+      {"field": "plugin.pretix_parentduties.duty", "label": "Dienst"},
+      {"field": "plugin.pretix_parentduties.category", "label": "Kategorie"},
+      {"field": "plugin.pretix_parentduties.helper_name", "label": "Wer hilft"},
+      {"field": "plugin.pretix_parentduties.helper_phone", "label": "Telefon"},
+      {"field": "order.code", "label": "Bestellung"},
+      {"field": "order.email", "label": "E-Mail"},
+      {"field": "plugin.pretix_parentduties.note", "label": "Notiz"}
+    ],
+    "filters": {
+      "op": "and",
+      "children": [
+        {"field": "order.status", "operator": "in", "value": ["p", "n"]},
+        {"field": "plugin.pretix_parentduties.kind", "operator": "exact", "value": "slot"},
+        {"field": "plugin.pretix_parentduties.status", "operator": "exact", "value": "active"}
+      ]
+    },
+    "sorting": [
+      {"field": "plugin.pretix_parentduties.date", "direction": "asc"},
+      {"field": "plugin.pretix_parentduties.time_from", "direction": "asc"},
+      {"field": "plugin.pretix_parentduties.duty", "direction": "asc"}
+    ],
+    "options": {
+      "include_canceled_positions": false,
+      "include_testmode_orders": false,
+      "row_limit": null
+    }
+  }
+}

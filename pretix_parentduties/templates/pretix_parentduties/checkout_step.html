@@ -18,6 +18,9 @@
             {% bootstrap_form_errors form type="non_fields" %}
             <fieldset class="parentduties-slots">
                 <legend class="sr-only">{% trans "Duty" %}</legend>
+                {% if form.waitlist.errors %}
+                    <div class="alert alert-danger">{% for e in form.waitlist.errors %}{{ e }} {% endfor %}</div>
+                {% endif %}
                 {% if form.duty.errors %}
                     <div class="alert alert-danger">{% for e in form.duty.errors %}{{ e }} {% endfor %}</div>
                 {% endif %}
@@ -49,6 +52,13 @@
                                             <div class="help-block" style="margin-bottom:0;">{{ slot.description|rich_text }}</div>
                                         {% endif %}
                                     </label>
+                                    {% if slot.full and waitlist_offered %}
+                                        <label class="checkbox-inline" style="margin-top:4px;">
+                                            <input type="checkbox" name="parentduties-waitlist" value="{{ slot.pk }}"
+                                                   {% if slot.waitlisted %}checked{% endif %}>
+                                            {% trans "Put us on the waitlist for this duty (please choose a free duty as well)" %}
+                                        </label>
+                                    {% endif %}
                                 </li>
                             {% endfor %}
                         </ul>

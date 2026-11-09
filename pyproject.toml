@@ -1,6 +1,6 @@
 [project]
 name = "pretix-parentduties"
-version = "0.2.0"
+version = "0.3.0"
 description = "pretix plugin: parent duty sign-up during checkout"
 readme = "README.md"
 authors = [{ name = "JuKi Schömberg e.V." }]

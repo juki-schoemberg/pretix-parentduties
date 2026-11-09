@@ -26,11 +26,38 @@
             {% bootstrap_field form.parentduties_change_until layout="control" %}
         </fieldset>
         <fieldset>
+            <legend>{% trans "Waitlist" %}</legend>
+            {% bootstrap_field form.parentduties_waitlist_mode layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_notify_subject layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_notify_text layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_auto_subject layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_auto_text layout="control" %}
+        </fieldset>
+        <fieldset>
             <legend>{% trans "Products" %}</legend>
             {% bootstrap_field form.parentduties_new_items_trigger layout="control" %}
         </fieldset>
         <div class="form-group submit-group">
             <button type="submit" class="btn btn-primary btn-save">{% trans "Save" %}</button>
         </div>
+    </form>
+    <form action="{% url "plugins:pretix_parentduties:reminder.create" organizer=request.organizer.slug event=request.event.slug %}"
+          method="post" class="form-inline">
+        {% csrf_token %}
+        <fieldset>
+            <legend>{% trans "Reminder e-mail" %}</legend>
+            <p>
+                {% blocktrans trimmed %}
+                    Creates a ready-made scheduled e-mail in “Send out emails” for all orders with products
+                    that trigger the parent duty. It contains the duty, its description and the link to the
+                    duty page. You can adjust the text and the date afterwards.
+                {% endblocktrans %}
+            </p>
+            <div class="form-group">
+                <label for="reminder-days">{% trans "Days before the event" %}</label>
+                <input type="number" min="0" max="365" name="days" id="reminder-days" value="7" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-default">{% trans "Create reminder e-mail" %}</button>
+        </fieldset>
     </form>
 {% endblock %}

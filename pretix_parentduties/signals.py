@@ -228,6 +228,8 @@ def add_nav_entry(sender, request, **kwargs):
              "active": active and url.url_name.startswith("slot")},
             {"label": _("Signups"), "url": _url(request, "signups"),
              "active": active and url.url_name.startswith("signup")},
+            {"label": _("Waitlist"), "url": _url(request, "waitlist"),
+             "active": active and url.url_name.startswith("waitlist")},
             {"label": _("Products"), "url": _url(request, "items"),
              "active": active and url.url_name == "items"},
         ],

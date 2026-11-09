@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "name": "Familien in Klärung",
+  "description": "Elterndienste mit Status „in Klärung“ und Familien, die keinen Dienst übernehmen können. Vorlage aus pretix-parentduties.",
+  "generator": "pretix-parentduties",
+  "meta": {},
+  "definition": {
+    "schema_version": 1,
+    "base": "order",
+    "columns": [
+      {"field": "order.code", "label": "Bestellung"},
+      {"field": "order.email", "label": "E-Mail"},
+      {"field": "order.phone", "label": "Telefon (Bestellung)"},
+      {"field": "plugin.pretix_parentduties.kind", "label": "Art"},
+      {"field": "plugin.pretix_parentduties.status", "label": "Status"},
+      {"field": "plugin.pretix_parentduties.duty", "label": "Dienst"},
+      {"field": "plugin.pretix_parentduties.family_code", "label": "Familien-Bestellcode"},
+      {"field": "plugin.pretix_parentduties.note", "label": "Notiz / Begründung"}
+    ],
+    "filters": {
+      "op": "and",
+      "children": [
+        {"field": "order.status", "operator": "in", "value": ["p", "n"]},
+        {
+          "op": "or",
+          "children": [
+            {"field": "plugin.pretix_parentduties.status", "operator": "exact", "value": "needs_review"},
+            {"field": "plugin.pretix_parentduties.kind", "operator": "exact", "value": "cannot_help"}
+          ]
+        },
+        {"field": "plugin.pretix_parentduties.status", "operator": "in", "value": ["active", "needs_review"]}
+      ]
+    },
+    "sorting": [
+      {"field": "plugin.pretix_parentduties.status", "direction": "desc"},
+      {"field": "order.code", "direction": "asc"}
+    ],
+    "options": {
+      "include_canceled_positions": false,
+      "include_testmode_orders": false,
+      "row_limit": null
+    }
+  }
+}
