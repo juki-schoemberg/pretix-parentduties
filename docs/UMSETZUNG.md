@@ -77,7 +77,7 @@ der Cart-Session unter `pretix_parentduties` und landet über
 ## Offen
 
 - Anbindung an Vereins-App / pretix-MCP (bewusst nicht umgesetzt).
-- Report-Generator pinnt ab seinem PR zum Pin-Update `pretix==2026.9.0`; lokal laufen die
+- Report-Generator verlangt ab seinem PR zum Pin-Update `pretix>=2026.9.0`; lokal laufen die
   Report-Tests damit ohne `PRETIX_IGNORE_CONFLICTS` grün. Der CI-Job installiert den
   Report-Generator vom Default-Branch und bleibt nicht-blockierend, bis der Pin dort gemergt ist.
 - Screenshots für das README.
