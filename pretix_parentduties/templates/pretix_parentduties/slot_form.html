@@ -1,0 +1,27 @@
+{% extends "pretix_parentduties/base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% block subtitle %} <small>{% if form.instance.pk %}{{ form.instance.name }}{% else %}{% trans "Create a new duty slot" %}{% endif %}</small>{% endblock %}
+{% block inner %}
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        {% bootstrap_form_errors form %}
+        <fieldset>
+            {% bootstrap_field form.name layout="control" %}
+            {% bootstrap_field form.description layout="control" %}
+            {% bootstrap_field form.tag layout="control" %}
+            {% if form.subevent %}{% bootstrap_field form.subevent layout="control" %}{% endif %}
+            {% bootstrap_field form.date layout="control" %}
+            {% bootstrap_field form.time_from layout="control" %}
+            {% bootstrap_field form.time_to layout="control" %}
+            {% bootstrap_field form.capacity layout="control" %}
+            {% bootstrap_field form.position layout="control" %}
+            {% bootstrap_field form.active layout="control" %}
+            {% bootstrap_field form.limit_items layout="control" %}
+        </fieldset>
+        <div class="form-group submit-group">
+            <a href="{% url "plugins:pretix_parentduties:slots" organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-default btn-cancel">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn btn-primary btn-save">{% trans "Save" %}</button>
+        </div>
+    </form>
+{% endblock %}

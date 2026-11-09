@@ -1,0 +1,37 @@
+{% load i18n %}
+<div class="panel panel-primary cart">
+    <div class="panel-heading">
+        <h3 class="panel-title">
+            {% trans "Parent duty" %}
+            <a href="{{ edit_url }}" class="h6"><span class="fa fa-edit" aria-hidden="true"></span>{% trans "Modify" %}</a>
+        </h3>
+    </div>
+    <div class="panel-body">
+        {% if family_known and choice != "slot" %}
+            <p>{% trans "A parent duty is already registered for your family – thank you!" %}</p>
+        {% elif choice == "slot" %}
+            <ul>
+                {% for slot in slots %}
+                    <li><strong>{{ slot.name }}</strong>{% if slot.date_display %}, {{ slot.date_display }}{% endif %}{% if slot.time_display %}, {{ slot.time_display }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+            {% if data.helper_name or data.helper_phone %}
+                <p>{% trans "Helper:" %} {{ data.helper_name }}{% if data.helper_phone %} ({{ data.helper_phone }}){% endif %}</p>
+            {% endif %}
+        {% elif choice == "sibling" %}
+            <p>{% blocktrans trimmed with code=data.sibling_code %}Covered by the registration of a sibling ({{ code }}).{% endblocktrans %}</p>
+        {% elif choice == "cannot_help" %}
+            <p>{% trans "Unfortunately we cannot take on a duty." %}</p>
+        {% elif choice == "skip" %}
+            <p>{% trans "You will decide later." %}</p>
+        {% endif %}
+        {% if confirm_checkbox %}
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="parentduties_commit" value="yes" required>
+                    {% trans "We commit to taking on the chosen duty." %}
+                </label>
+            </div>
+        {% endif %}
+    </div>
+</div>

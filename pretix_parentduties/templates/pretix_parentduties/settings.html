@@ -1,0 +1,63 @@
+{% extends "pretixcontrol/event/settings_base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% block inside %}
+    <h1>{% trans "Parent duties" %}</h1>
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        {% bootstrap_form_errors form %}
+        <fieldset>
+            <legend>{% trans "Checkout step" %}</legend>
+            {% bootstrap_field form.parentduties_live layout="control" %}
+            {% bootstrap_field form.parentduties_required layout="control" %}
+            {% bootstrap_field form.parentduties_title layout="control" %}
+            {% bootstrap_field form.parentduties_intro layout="control" %}
+            {% bootstrap_field form.parentduties_confirm_checkbox layout="control" %}
+        </fieldset>
+        <fieldset>
+            <legend>{% trans "Options for families" %}</legend>
+            {% bootstrap_field form.parentduties_sibling_code layout="control" %}
+            {% bootstrap_field form.parentduties_allow_cannot_help layout="control" %}
+            {% bootstrap_field form.parentduties_cannot_help_reason_required layout="control" %}
+            {% bootstrap_field form.parentduties_allow_multiple layout="control" %}
+            {% bootstrap_field form.parentduties_max_per_family layout="control" %}
+            {% bootstrap_field form.parentduties_ask_name layout="control" %}
+            {% bootstrap_field form.parentduties_ask_phone layout="control" %}
+            {% bootstrap_field form.parentduties_change_until layout="control" %}
+        </fieldset>
+        <fieldset>
+            <legend>{% trans "Waitlist" %}</legend>
+            {% bootstrap_field form.parentduties_waitlist_mode layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_notify_subject layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_notify_text layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_auto_subject layout="control" %}
+            {% bootstrap_field form.parentduties_waitlist_auto_text layout="control" %}
+        </fieldset>
+        <fieldset>
+            <legend>{% trans "Products" %}</legend>
+            {% bootstrap_field form.parentduties_new_items_trigger layout="control" %}
+        </fieldset>
+        <div class="form-group submit-group">
+            <button type="submit" class="btn btn-primary btn-save">{% trans "Save" %}</button>
+        </div>
+    </form>
+    <form action="{% url "plugins:pretix_parentduties:reminder.create" organizer=request.organizer.slug event=request.event.slug %}"
+          method="post" class="form-inline">
+        {% csrf_token %}
+        <fieldset>
+            <legend>{% trans "Reminder e-mail" %}</legend>
+            <p>
+                {% blocktrans trimmed %}
+                    Creates a ready-made scheduled e-mail in “Send out emails” for all orders with products
+                    that trigger the parent duty. It contains the duty, its description and the link to the
+                    duty page. You can adjust the text and the date afterwards.
+                {% endblocktrans %}
+            </p>
+            <div class="form-group">
+                <label for="reminder-days">{% trans "Days before the event" %}</label>
+                <input type="number" min="0" max="365" name="days" id="reminder-days" value="7" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-default">{% trans "Create reminder e-mail" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

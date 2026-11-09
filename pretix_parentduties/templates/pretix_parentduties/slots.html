@@ -1,0 +1,73 @@
+{% extends "pretix_parentduties/base.html" %}
+{% load i18n %}
+{% block subtitle %} <small>{% trans "Duty slots" %}</small>{% endblock %}
+{% block inner %}
+    <p>
+        {% if can_write %}
+            <a href="{% url "plugins:pretix_parentduties:slot.add" organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-primary">
+                <span class="fa fa-plus"></span> {% trans "Create a new duty slot" %}
+            </a>
+        {% endif %}
+        {% if review_count %}
+            <a href="{% url "plugins:pretix_parentduties:signups" organizer=request.organizer.slug event=request.event.slug %}?review=1" class="btn btn-warning">
+                {% blocktrans trimmed count n=review_count %}{{ n }} signup under review{% plural %}{{ n }} signups under review{% endblocktrans %}
+            </a>
+        {% endif %}
+    </p>
+    {% if slots %}
+        <div class="table-responsive">
+            <table class="table table-condensed table-hover">
+                <thead>
+                <tr>
+                    <th>{% trans "Duty" %}</th>
+                    <th>{% trans "Category" %}</th>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Time" %}</th>
+                    <th style="min-width: 160px">{% trans "Occupancy" %}</th>
+                    <th>{% trans "Waitlist" %}</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for s in slots %}
+                    <tr{% if not s.active %} class="text-muted"{% endif %}>
+                        <td>
+                            <strong>{% if can_write %}<a href="{% url "plugins:pretix_parentduties:slot.edit" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</strong>
+                            {% if not s.active %}<span class="label label-default">{% trans "inactive" %}</span>{% endif %}
+                        </td>
+                        <td>{{ s.tag }}</td>
+                        <td>{{ s.date_display }}</td>
+                        <td>{{ s.time_display }}</td>
+                        <td>
+                            <a href="{% url "plugins:pretix_parentduties:signups" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">
+                                {{ s.occupied }}{% if s.capacity is not None %}/{{ s.capacity }}{% else %} / ∞{% endif %}
+                            </a>
+                            <div class="progress" style="margin-bottom:0; height: 8px;">
+                                <div class="progress-bar {% if s.capacity is not None and s.occupied >= s.capacity %}progress-bar-success{% elif s.occupied == 0 %}progress-bar-danger{% else %}progress-bar-info{% endif %}"
+                                     style="width: {% if s.occupied == 0 %}100{% else %}{{ s.percent }}{% endif %}%; {% if s.occupied == 0 %}opacity: .25;{% endif %}"></div>
+                            </div>
+                        </td>
+                        <td>{% if s.waiting %}<a href="{% url "plugins:pretix_parentduties:waitlist" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">{{ s.waiting }}</a>{% endif %}</td>
+                        <td class="text-right flip">
+                            {% if can_write %}
+                                <form method="post" action="{% url "plugins:pretix_parentduties:slot.duplicate" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-default btn-sm" title="{% trans "Duplicate" %}"><span class="fa fa-copy"></span></button>
+                                </form>
+                                <form method="post" action="{% url "plugins:pretix_parentduties:slot.delete" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-danger btn-sm" title="{% trans "Delete" %}"><span class="fa fa-trash"></span></button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-collection">
+            <p>{% trans "You haven't created any duty slots yet." %}</p>
+        </div>
+    {% endif %}
+{% endblock %}

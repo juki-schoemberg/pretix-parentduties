@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  schedule:
+    # weekly, to notice breaking changes in pretix master early
+    - cron: "17 4 * * 1"
+
+jobs:
+  test:
+    name: pytest (pretix ${{ matrix.pretix }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pretix: stable
+            install: "pretix"
+          - pretix: master
+            # pretix' pyproject.toml lives in the repository root (not in src/)
+            install: "pretix @ git+https://github.com/pretix/pretix.git@master"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext
+      - name: Install pretix
+        run: pip install "${{ matrix.install }}"
+      - name: Install plugin and test dependencies
+        run: pip install pytest pytest-django flake8 -e .
+      - name: Compile translations
+        run: cd pretix_parentduties && django-admin compilemessages
+      - name: flake8
+        run: flake8 pretix_parentduties tests
+      - name: Check for missing migrations
+        run: python -m pretix makemigrations pretix_parentduties --check --dry-run
+        env:
+          DJANGO_SETTINGS_MODULE: pretix.testutils.settings
+      - name: Run tests
+        run: pytest
+
+  reports:
+    # Optional integration with pretix-reportgenerator (soft dependency). It currently
+    # pins an older pretix version, so pretix' plugin compatibility check is disabled
+    # here and the job may fail without blocking the PR.
+    name: pytest (with pretix-reportgenerator)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      PRETIX_IGNORE_CONFLICTS: "True"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext
+      - name: Install pretix, plugin and test dependencies
+        run: pip install pretix pytest pytest-django -e .
+      - name: Install pretix-reportgenerator
+        run: pip install --no-deps "pretix-custom-reports @ git+https://github.com/juki-schoemberg/pretix-reportgenerator.git"
+      - name: Compile translations
+        run: cd pretix_parentduties && django-admin compilemessages
+      - name: Run report tests
+        run: pytest tests/test_reports.py -rs

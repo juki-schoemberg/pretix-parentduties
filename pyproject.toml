@@ -1,0 +1,30 @@
+[project]
+name = "pretix-parentduties"
+version = "0.3.0"
+description = "pretix plugin: parent duty sign-up during checkout"
+readme = "README.md"
+authors = [{ name = "JuKi Schömberg e.V." }]
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-django"]
+reports = ["pretix-custom-reports"]
+
+[project.urls]
+Homepage = "https://github.com/juki-schoemberg/pretix-parentduties"
+Repository = "https://github.com/juki-schoemberg/pretix-parentduties"
+
+[project.entry-points."pretix.plugin"]
+pretix_parentduties = "pretix_parentduties:PretixPluginMeta"
+
+[tool.setuptools.packages.find]
+include = ["pretix_parentduties*"]
+
+[tool.setuptools.package-data]
+pretix_parentduties = ["templates/**/*.html", "migrations/*.py", "locale/**/*"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

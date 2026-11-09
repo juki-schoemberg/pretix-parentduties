@@ -1,0 +1,16 @@
+{% extends "pretixcontrol/event/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Parent duties" %}{% endblock %}
+{% block content %}
+    <h1>{% trans "Parent duties" %}{% block subtitle %}{% endblock %}</h1>
+    {% if not live %}
+        <div class="alert alert-info">
+            {% blocktrans trimmed %}
+                The checkout step is not live yet. Once all duty slots and products are set up,
+                turn it on in the settings.
+            {% endblocktrans %}
+            <a href="{{ settings_url }}">{% trans "Settings" %}</a>
+        </div>
+    {% endif %}
+    {% block inner %}{% endblock %}
+{% endblock %}
