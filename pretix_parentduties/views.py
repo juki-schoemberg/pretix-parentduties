@@ -19,7 +19,7 @@ from . import services
 from .forms import (
     DutyChangeForm, DutySlotForm, ParentDutySettingsForm, SignupAddForm, SignupLinkForm, SignupMoveForm,
 )
-from .models import DutySignup, DutySlot, ItemDutyConfig
+from .models import DutySignup, DutySlot, DutyWaitlistEntry, ItemDutyConfig
 from .signals import PERM_READ, PERM_WRITE, has_perm
 
 
@@ -45,7 +45,7 @@ class SlotListView(PluginViewMixin, EventPermissionRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        slots = list(DutySlot.objects.filter(event=self.request.event).with_occupancy().order_by(
+        slots = list(DutySlot.objects.filter(event=self.request.event).with_occupancy().with_waiting().order_by(
             "date", "time_from", "position", "id"
         ))
         for s in slots:
@@ -79,6 +79,7 @@ class SlotEditView(PluginViewMixin, EventPermissionRequiredMixin, FormView):
         created = not form.instance.pk
         form.instance.event = self.request.event
         slot = form.save()
+        transaction.on_commit(lambda: services.process_waitlist(slot))
         self.request.event.log_action(
             "pretix_parentduties.slot.created" if created else "pretix_parentduties.slot.changed",
             user=self.request.user, data={"id": slot.pk, "name": str(slot.name)},
@@ -239,6 +240,47 @@ class SignupAddView(PluginViewMixin, EventPermissionRequiredMixin, View):
         return redirect(self.url("signups") + "?order=" + form.cleaned_data["order"].code)
 
 
+class WaitlistView(PluginViewMixin, EventPermissionRequiredMixin, ListView):
+    template_name = "pretix_parentduties/waitlist.html"
+    permission = PERM_READ
+    context_object_name = "entries"
+    paginate_by = 100
+
+    def get_queryset(self):
+        qs = DutyWaitlistEntry.objects.filter(event=self.request.event).select_related(
+            "slot", "signup__order", "signup__slot",
+        ).order_by("slot__date", "slot__time_from", "slot__position", "slot_id", "created", "id")
+        status = self.request.GET.get("status", DutyWaitlistEntry.STATUS_WAITING)
+        if status:
+            qs = qs.filter(status=status)
+        if self.request.GET.get("slot"):
+            qs = qs.filter(slot_id=self.request.GET["slot"])
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["slots"] = DutySlot.objects.filter(event=self.request.event)
+        ctx["status_choices"] = DutyWaitlistEntry.STATUS_CHOICES
+        ctx["status"] = self.request.GET.get("status", DutyWaitlistEntry.STATUS_WAITING)
+        ctx["filters"] = self.request.GET
+        ctx["mode"] = services.waitlist_mode(self.request.event)
+        ctx["active"] = services.waitlist_active(self.request.event)
+        return ctx
+
+
+class WaitlistRemoveView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    permission = PERM_WRITE
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        entry = get_object_or_404(
+            DutyWaitlistEntry, event=request.event, pk=kwargs["pk"], status=DutyWaitlistEntry.STATUS_WAITING,
+        )
+        services.leave_waitlist(entry, user=request.user)
+        messages.success(request, _("The waitlist entry has been removed."))
+        return redirect(self.url("waitlist"))
+
+
 # ----------------------------------------------------------------- products
 
 class ItemsView(PluginViewMixin, EventPermissionRequiredMixin, TemplateView):
@@ -284,6 +326,33 @@ class ItemsView(PluginViewMixin, EventPermissionRequiredMixin, TemplateView):
                                      data={"items": changed})
         messages.success(request, _("Your changes have been saved."))
         return redirect(self.url("items"))
+
+
+# ----------------------------------------------------------------- reminder
+
+class ReminderCreateView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    """Creates the ready-made reminder e-mail rule and opens it in pretix' rule editor."""
+
+    permission = "event.settings.general:write"
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        from .reminder import NoTriggeringProducts, create_reminder_rule
+        try:
+            days = max(0, min(365, int(request.POST.get("days", 7))))
+        except ValueError:
+            days = 7
+        try:
+            rule = create_reminder_rule(request.event, days_before=days, user=request.user)
+        except NoTriggeringProducts:
+            messages.error(request, _("Please choose the products that trigger the parent duty first."))
+            return redirect(self.url("settings"))
+        messages.success(request, _(
+            "The reminder e-mail has been created as a scheduled e-mail. Check the text and adjust it if needed."
+        ))
+        return redirect(reverse("plugins:sendmail:rule.update", kwargs={
+            "organizer": request.organizer.slug, "event": request.event.slug, "rule": rule.pk,
+        }))
 
 
 # ----------------------------------------------------------------- settings
@@ -341,11 +410,38 @@ class OrderDutyView(EventViewMixin, OrderDetailMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         return self.render(self.forms())
 
+    def _own_signup(self, signup_id):
+        return self.order.parentduty_signups.filter(pk=signup_id).exclude(
+            status=DutySignup.STATUS_CANCELED,
+        ).select_related("slot").first()
+
+    def post_waitlist(self, request, signup_id):
+        action = request.POST.get("action")
+        if action == "leave_waitlist":
+            entry = DutyWaitlistEntry.objects.filter(
+                pk=request.POST.get("entry") or 0, signup__order=self.order,
+                status=DutyWaitlistEntry.STATUS_WAITING,
+            ).select_related("signup__order", "slot").first()
+            if entry:
+                services.leave_waitlist(entry)
+                messages.success(request, _("You have been removed from the waitlist."))
+            return redirect(self.request.path)
+        signup = self._own_signup(signup_id)
+        slot = DutySlot.objects.filter(event=request.event, pk=request.POST.get("waitlist_slot") or 0).first()
+        if signup is None or slot is None or not services.can_join_waitlist(signup, slot):
+            messages.error(request, _("You cannot join the waitlist for this duty."))
+        else:
+            services.join_waitlist(signup, slot)
+            messages.success(request, _("You are on the waitlist. We will let you know when a spot becomes free."))
+        return redirect(self.request.path)
+
     def post(self, request, *args, **kwargs):
         try:
             signup_id = int(request.POST.get("signup", ""))
         except ValueError:
             signup_id = None
+        if request.POST.get("action") in ("join_waitlist", "leave_waitlist"):
+            return self.post_waitlist(request, signup_id)
         forms = self.forms(data=request.POST, only=signup_id)
         form = next((f for f in forms if f.signup.pk == signup_id), None)
         if form is None:
@@ -374,7 +470,16 @@ class OrderDutyView(EventViewMixin, OrderDetailMixin, TemplateView):
             if s.status != DutySignup.STATUS_CANCELED
         ]
         forms_by_signup = {f.signup.pk: f for f in forms}
+        waitlist_on = services.waitlist_active(self.request.event)
         for s in signups:
+            s.waiting = list(s.waitlist_entries.filter(
+                status=DutyWaitlistEntry.STATUS_WAITING,
+            ).select_related("slot"))
+            waiting_ids = {e.slot_id for e in s.waiting}
+            s.joinable = [
+                sl for sl in DutySlot.objects.filter(event=self.request.event, active=True).with_occupancy()
+                if sl.pk not in waiting_ids and services.can_join_waitlist(s, sl)
+            ] if waitlist_on and s.kind == DutySignup.KIND_SLOT else []
             s.text = duty_text(s)
             s.status_text = services.status_label(s)
             s.form = forms_by_signup.get(s.pk)

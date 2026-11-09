@@ -1,6 +1,6 @@
 # Umsetzungsstand
 
-Stand: 08.11.2026, Version 0.2.0, getestet gegen pretix 2026.9.0 (Python 3.13).
+Stand: 09.11.2026, Version 0.3.0, getestet gegen pretix 2026.9.0 (Python 3.13).
 
 ## Fertig (Ausbaustufe 1 / MVP)
 
@@ -10,7 +10,7 @@ Lebenszyklus, Backend-Listen und Eingriffe, alle Platzhalter, Dashboard-Widget,
 Report-Felder. Zusätzlich schon aus Stufe 2: Ticket-Layout-Variablen und die
 Zusagen in der REST-API der Bestellung (`plugin_data`).
 
-## Ausbaustufe 2 (Teil)
+## Ausbaustufe 2
 
 - **Selbständerung bis Frist:** Einstellung „Eltern dürfen ihren Dienst selbst ändern bis“
   (absolut oder relativ zur Veranstaltung, leer = nur Admins). Bis dahin wechseln Eltern auf
@@ -25,6 +25,37 @@ Zusagen in der REST-API der Bestellung (`plugin_data`).
   `/<veranstalter>/<event>/order/<code>/<secret>/parentduty/`. Nach der Frist ist sie nur
   noch lesbar. Die Box auf der Bestellseite verlinkt ebenfalls dorthin.
 - **Englisch:** Quelltexte sind englisch; neben `de` liegt jetzt ein `en`-Katalog bei.
+- **Report-Vorlagen** unter `docs/reports/`: „Helferliste je Tag“ (Art = Dienst, Status = aktiv,
+  sortiert nach Datum, Uhrzeit, Dienst) und „Familien in Klärung“ (Status = in Klärung oder
+  Art = kann nicht). Import über die JSON-Funktion des Report-Generators; ein Test kompiliert und
+  führt beide gegen den echten Report-Generator aus (CI-Job „with pretix-reportgenerator“).
+- **REST-API** für Slots (CRUD, mit Belegung), Zusagen (lesen, filtern, verschieben) und
+  Warteliste (lesen), siehe `docs/API.md`.
+- **Erinnerungs-Mail:** Button in den Einstellungen legt eine geplante E-Mail im pretix-Modul
+  „E-Mails senden“ an (Standard 7 Tage vor Beginn, 10:00 Uhr, nur an Bestellungen mit Produkten,
+  die die Pflicht auslösen) und öffnet sie im Regel-Editor. Das Modul wird bei Bedarf aktiviert.
+  Hinweis: Auch Bestellungen mit „kann nicht“ oder „später entscheiden“ bekommen die Mail; dort
+  steht dann „kein Dienst“ bzw. nichts – pretix-Regeln können nicht nach Plugin-Daten filtern.
+
+## Ausbaustufe 3: Warteliste
+
+- Einstellung „Warteliste für volle Dienste“: aus (Standard) / per E-Mail benachrichtigen /
+  automatisch verschieben. „Benachrichtigen“ verlangt eine Änderungsfrist, weil Eltern dann
+  selbst wechseln. Die Warteliste läuft bis zur Änderungsfrist (falls gesetzt) und bis zum
+  Beginn der Veranstaltung.
+- Familien behalten immer ihren Dienst und warten zusätzlich auf einen vollen – im Checkout
+  (Häkchen am vollen Slot, ein freier Dienst bleibt Pflicht) oder später auf der Dienst-Seite.
+- Wird ein Platz frei (Storno, Ablauf, Änderung durch Eltern oder Admin, Bestellung ohne
+  auslösendes Produkt, Testmodus-Löschung, mehr Kapazität, Slot reaktiviert), kommt die am
+  längsten wartende Familie dran. „Automatisch“: Dienst wird verschoben, der alte Platz geht
+  an die nächste Warteliste weiter (Kette). „Benachrichtigen“: je freiem Platz eine Mail an die
+  nächste noch nicht benachrichtigte Familie; wer wechselt, hat den Platz.
+- Erreicht eine Familie ihren Wunsch-Dienst (auf welchem Weg auch immer), sind ihre übrigen
+  Wartelisten-Einträge erledigt. Stornierte Zusagen verlassen die Warteliste.
+- Beide E-Mail-Texte sind pro Veranstaltung anpassbar (Platzhalter wie in allen Mails plus
+  `{parent_duty_waitlist_slot}`), Versand in der Sprache der Bestellung, alles im Bestell-Log.
+- Backend: eigener Menüpunkt „Warteliste“ mit Filter und Entfernen, Spalte in der Slot-Liste,
+  Zähler im Dashboard-Widget, Platzhalter `{parent_duty_waitlist}`.
 
 ## Bewusste Abweichungen vom Konzept
 
@@ -45,9 +76,8 @@ der Cart-Session unter `pretix_parentduties` und landet über
 
 ## Offen
 
-- Rest von Stufe 2: Report-Vorlagen als JSON unter `docs/reports/`, eigenes REST-Viewset für Slots.
-- Stufe 3: Warteliste, Vereins-App / pretix-MCP.
-- Report-Generator: pinnt jetzt `pretix==2026.9.0` (Branch `ccr-0c449b7c-31iofq`), lokal
-  laufen die Report-Tests damit ohne `PRETIX_IGNORE_CONFLICTS` grün. Der CI-Job installiert
-  den Report-Generator vom Default-Branch und bleibt nicht-blockierend, bis der Pin dort gemergt ist.
+- Anbindung an Vereins-App / pretix-MCP (bewusst nicht umgesetzt).
+- Report-Generator pinnt ab seinem PR zum Pin-Update `pretix==2026.9.0`; lokal laufen die
+  Report-Tests damit ohne `PRETIX_IGNORE_CONFLICTS` grün. Der CI-Job installiert den
+  Report-Generator vom Default-Branch und bleibt nicht-blockierend, bis der Pin dort gemergt ist.
 - Screenshots für das README.

@@ -60,6 +60,41 @@
                         </div>
                     </form>
                 {% endif %}
+                {% if s.waiting or s.joinable %}
+                    <hr>
+                    <p><strong>{% trans "Waitlist" %}</strong></p>
+                    {% if s.waiting %}
+                        <ul class="list-unstyled">
+                            {% for e in s.waiting %}
+                                <li>
+                                    <form method="post" style="display:inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="leave_waitlist">
+                                        <input type="hidden" name="entry" value="{{ e.pk }}">
+                                        {{ e.slot.full_display }}
+                                        <span class="text-muted">({% trans "waiting" %})</span>
+                                        <button class="btn btn-link btn-xs" type="submit">{% trans "Remove" %}</button>
+                                    </form>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {% if s.joinable %}
+                        <form method="post" class="form-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="join_waitlist">
+                            <input type="hidden" name="signup" value="{{ s.pk }}">
+                            <label for="waitlist-{{ s.pk }}" class="sr-only">{% trans "Duty" %}</label>
+                            <select name="waitlist_slot" id="waitlist-{{ s.pk }}" class="form-control">
+                                {% for sl in s.joinable %}<option value="{{ sl.pk }}">{{ sl.full_display }}</option>{% endfor %}
+                            </select>
+                            <button class="btn btn-default" type="submit">{% trans "Join waitlist" %}</button>
+                        </form>
+                        <p class="help-block">
+                            {% trans "You keep your current duty. If a spot becomes free in the duty you are waiting for, we will let you know." %}
+                        </p>
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
     {% endfor %}

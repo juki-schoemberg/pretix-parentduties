@@ -98,6 +98,7 @@ class ParentDutyStep(CartMixin, TemplateFlowStep):
             )
         elif stored.get("choice"):
             initial["duty"] = stored["choice"]
+        initial["waitlist"] = [str(pk) for pk in stored.get("waitlist") or []]
         initial["sibling_code"] = stored.get("sibling_code", "")
         initial["reason"] = stored.get("note", "")
         initial["helper_name"] = stored.get("helper_name", "")
@@ -135,11 +136,16 @@ class ParentDutyStep(CartMixin, TemplateFlowStep):
             selected = [selected]
         selected = {str(v) for v in selected}
 
+        waitlisted = self.form["waitlist"].value() if "waitlist" in self.form.fields else []
+        waitlisted = {str(v) for v in waitlisted or []}
+        ctx["waitlist_offered"] = self.form.waitlist_offered
+
         groups = OrderedDict()
         for slot in sorted(self.slots, key=slot_sort_key):
             slot.checked = str(slot.pk) in selected
             slot.free = slot.free_count()
             slot.full = slot.is_full()
+            slot.waitlisted = str(slot.pk) in waitlisted
             key = slot.date_display or str(_("Other duties"))
             groups.setdefault(key, []).append(slot)
         ctx["slot_groups"] = groups

@@ -6,9 +6,11 @@ import logging
 
 from django.db import transaction
 from django.utils.timezone import now
+from i18nfield.strings import LazyI18nString
 from django.utils.translation import gettext as _
 
 from pretix.base.models import Order
+from pretix.base.i18n import language
 from pretix.base.reldate import RelativeDateWrapper
 
 from .models import DutySignup, DutySlot, ItemDutyConfig
@@ -217,6 +219,17 @@ def create_signups_for_order(order, data=None):
                     _log(order, "pretix_parentduties.signup.overbooked", signup)
                 else:
                     _log(order, "pretix_parentduties.signup.created", signup)
+            primary = created[0] if created else None
+            if primary is not None and primary.slot_id and waitlist_active(event):
+                from .models import DutyWaitlistEntry
+                for slot_id in data.get("waitlist") or []:
+                    wslot = DutySlot.objects.filter(event=event, pk=slot_id).first()
+                    if wslot and wslot.pk not in {c.slot_id for c in created}:
+                        DutyWaitlistEntry.objects.get_or_create(
+                            slot=wslot, signup=primary, defaults={"event": event},
+                        )
+                        _log(order, "pretix_parentduties.waitlist.joined", primary,
+                             waitlist_slot=wslot.pk, waitlist_slot_name=str(wslot))
         elif choice == CHOICE_SIBLING:
             code = (data.get("sibling_code") or "").strip().upper()
             root = find_signup_by_code(event, code, exclude_order=order)
@@ -271,12 +284,17 @@ def _flag_dependents(signup, reason, user=None):
 
 
 def cancel_order_signups(order, user=None):
+    freed = []
     with transaction.atomic():
         for signup in order.parentduty_signups.exclude(status=DutySignup.STATUS_CANCELED):
+            if signup.kind == DutySignup.KIND_SLOT and signup.status == DutySignup.STATUS_ACTIVE:
+                freed.append(signup.slot)
             signup.status = DutySignup.STATUS_CANCELED
             signup.save(update_fields=["status"])
+            close_waitlist_entries(signup)
             _log(order, "pretix_parentduties.signup.canceled", signup, user=user)
             _flag_dependents(signup, "family_has_no_duty", user=user)
+    process_waitlist_for(*freed)
 
 
 def reactivate_order_signups(order, user=None):
@@ -320,18 +338,24 @@ def handle_order_changed(order):
     """No triggering product left: send active signups to review, never delete."""
     if order_triggers(order):
         return
+    freed = []
     for signup in order.parentduty_signups.filter(status=DutySignup.STATUS_ACTIVE):
+        if signup.kind == DutySignup.KIND_SLOT:
+            freed.append(signup.slot)
         signup.status = DutySignup.STATUS_NEEDS_REVIEW
         signup.save(update_fields=["status"])
         _log(order, "pretix_parentduties.signup.needs_review", signup, reason="no_triggering_product")
+    process_waitlist_for(*freed)
 
 
 def delete_order_signups(order):
     """Test mode order is deleted for good."""
-    signups = list(order.parentduty_signups.all())
+    signups = list(order.parentduty_signups.select_related("slot"))
     for signup in signups:
         _flag_dependents(signup, "family_has_no_duty")
+    freed = [s.slot for s in signups if s.kind == DutySignup.KIND_SLOT and s.status == DutySignup.STATUS_ACTIVE]
     DutySignup.objects.filter(pk__in=[s.pk for s in signups]).delete()
+    process_waitlist_for(*freed)
 
 
 # --------------------------------------------------------- self-service change
@@ -379,6 +403,7 @@ def customer_change(signup, slot, helper_name=None, helper_phone=None):
         ).exclude(pk=signup.pk).exclude(status=DutySignup.STATUS_CANCELED).exists():
             raise SlotFull(locked)
         old = signup.slot
+        was_active = signup.kind == DutySignup.KIND_SLOT and signup.status == DutySignup.STATUS_ACTIVE
         if signup.kind == DutySignup.KIND_CANNOT_HELP:
             signup.note = ""  # the "cannot help" reason no longer applies
         signup.kind = DutySignup.KIND_SLOT
@@ -391,8 +416,11 @@ def customer_change(signup, slot, helper_name=None, helper_phone=None):
         if helper_phone is not None:
             signup.helper_phone = helper_phone[:64]
         signup.save()
+        close_waitlist_entries(signup, fulfilled_slot=locked)
         _log(signup.order, "pretix_parentduties.signup.changed_by_customer", signup,
              old_slot=old.pk if old else None, old_slot_name=str(old) if old else None)
+    if old is not None and old.pk != locked.pk and was_active:
+        process_waitlist_for(old)
     return signup
 
 
@@ -401,16 +429,23 @@ def customer_change(signup, slot, helper_name=None, helper_phone=None):
 def admin_move(signup, slot, user=None):
     """Move a signup to another slot. Admins may deliberately exceed capacity."""
     old = signup.slot
+    was_active = signup.kind == DutySignup.KIND_SLOT and signup.status == DutySignup.STATUS_ACTIVE
     signup.kind = DutySignup.KIND_SLOT
     signup.slot = slot
     signup.covered_by = None
     signup.status = DutySignup.STATUS_ACTIVE
     signup.save()
+    close_waitlist_entries(signup, fulfilled_slot=slot)
     _log(signup.order, "pretix_parentduties.signup.moved", signup, user=user,
          old_slot=old.pk if old else None, old_slot_name=str(old) if old else None)
+    if old is not None and old.pk != slot.pk and was_active:
+        process_waitlist_for(old)
 
 
 def admin_set(signup, kind, status, user=None, covered_by=None):
+    old_slot = signup.slot if (
+        signup.kind == DutySignup.KIND_SLOT and signup.status == DutySignup.STATUS_ACTIVE
+    ) else None
     signup.kind = kind
     signup.status = status
     if kind != DutySignup.KIND_SLOT:
@@ -421,8 +456,14 @@ def admin_set(signup, kind, status, user=None, covered_by=None):
         signup.covered_by = None
     signup.save()
     _log(signup.order, "pretix_parentduties.signup.changed", signup, user=user)
+    if kind != DutySignup.KIND_SLOT:
+        close_waitlist_entries(signup)
     if not signup.is_fulfilling:
         _flag_dependents(signup, "family_has_no_duty", user=user)
+    still_there = signup.kind == DutySignup.KIND_SLOT and signup.status == DutySignup.STATUS_ACTIVE \
+        and signup.slot_id == (old_slot.pk if old_slot else None)
+    if old_slot is not None and not still_there:
+        process_waitlist_for(old_slot)
 
 
 def admin_add(order, slot=None, kind=DutySignup.KIND_SLOT, user=None):
@@ -440,8 +481,12 @@ def admin_add(order, slot=None, kind=DutySignup.KIND_SLOT, user=None):
 
 
 def admin_cancel(signup, user=None):
+    freed = signup.slot if (
+        signup.kind == DutySignup.KIND_SLOT and signup.status == DutySignup.STATUS_ACTIVE
+    ) else None
     signup.status = DutySignup.STATUS_CANCELED
     signup.save(update_fields=["status"])
+    close_waitlist_entries(signup)
     _log(signup.order, "pretix_parentduties.signup.canceled", signup, user=user)
     _flag_dependents(signup, "family_has_no_duty", user=user)
     if signup.primary:
@@ -454,6 +499,7 @@ def admin_cancel(signup, user=None):
             signup.save(update_fields=["primary"])
             nxt.primary = True
             nxt.save(update_fields=["primary"])
+    process_waitlist_for(freed)
 
 
 # ------------------------------------------------------------------ copying
@@ -490,3 +536,155 @@ def status_label(signup):
         DutySignup.KIND_EXEMPT: _("exempt"),
         DutySignup.KIND_CANNOT_HELP: _("cannot help"),
     }.get(signup.kind, "")
+
+
+# ------------------------------------------------------------------ waitlist
+
+def waitlist_mode(event):
+    from .conf import WAITLIST_OFF
+    return event.settings.parentduties_waitlist_mode or WAITLIST_OFF
+
+
+def waitlist_active(event):
+    """Waitlist offered and processed: mode on, plugin live, before the event and the deadline."""
+    from .conf import WAITLIST_NOTIFY, WAITLIST_OFF
+    mode = waitlist_mode(event)
+    if mode == WAITLIST_OFF or not is_live(event):
+        return False
+    if event.date_from and now() >= event.date_from:
+        return False
+    deadline = change_deadline(event)
+    if mode == WAITLIST_NOTIFY:
+        # parents must be able to switch themselves
+        return can_change(event)
+    return deadline is None or now() <= deadline
+
+
+def can_join_waitlist(signup, slot):
+    return (
+        waitlist_active(signup.event)
+        and signup.kind == DutySignup.KIND_SLOT
+        and signup.status != DutySignup.STATUS_CANCELED
+        and signup.order.status in VALID_ORDER_STATES
+        and slot.active
+        and slot.pk != signup.slot_id
+        and slot.is_full()
+    )
+
+
+def join_waitlist(signup, slot):
+    from .models import DutyWaitlistEntry
+    entry, created = DutyWaitlistEntry.objects.get_or_create(
+        slot=slot, signup=signup, defaults={"event": signup.event},
+    )
+    if not created and entry.status != DutyWaitlistEntry.STATUS_WAITING:
+        entry.status = DutyWaitlistEntry.STATUS_WAITING
+        entry.notified_at = None
+        entry.created = now()
+        entry.save(update_fields=["status", "notified_at", "created"])
+    _log(signup.order, "pretix_parentduties.waitlist.joined", signup, waitlist_slot=slot.pk,
+         waitlist_slot_name=str(slot))
+    return entry
+
+
+def leave_waitlist(entry, user=None):
+    from .models import DutyWaitlistEntry
+    entry.status = DutyWaitlistEntry.STATUS_REMOVED
+    entry.save(update_fields=["status"])
+    _log(entry.signup.order, "pretix_parentduties.waitlist.left", entry.signup, user=user,
+         waitlist_slot=entry.slot_id, waitlist_slot_name=str(entry.slot))
+
+
+def close_waitlist_entries(signup, fulfilled_slot=None):
+    """After a move or cancellation: the reached slot is fulfilled, all others are removed."""
+    from .models import DutyWaitlistEntry
+    qs = DutyWaitlistEntry.objects.filter(signup=signup, status=DutyWaitlistEntry.STATUS_WAITING)
+    if fulfilled_slot is not None:
+        qs.filter(slot=fulfilled_slot).update(status=DutyWaitlistEntry.STATUS_FULFILLED)
+        qs = qs.exclude(slot=fulfilled_slot)
+    qs.update(status=DutyWaitlistEntry.STATUS_REMOVED)
+
+
+def _waitlist_mail(signup, entry, kind):
+    from pretix.base.email import get_email_context
+    event = signup.event
+    order = signup.order
+    subject = event.settings.get(f"parentduties_waitlist_{kind}_subject", as_type=LazyI18nString)
+    text = event.settings.get(f"parentduties_waitlist_{kind}_text", as_type=LazyI18nString)
+    with language(order.locale, event.settings.region):
+        ctx = get_email_context(event=event, order=order)
+        ctx["parent_duty_waitlist_slot"] = str(entry.slot.name)
+        try:
+            order.send_mail(subject, text, ctx, log_entry_type=f"pretix_parentduties.waitlist.mail_{kind}")
+        except Exception:  # never let a mail problem break the move
+            logger.exception("Could not send parent duty waitlist e-mail")
+
+
+def process_waitlist(slot):
+    """Hand out free spots of ``slot`` (and of slots freed in turn) to the waitlist, oldest first."""
+    from .conf import WAITLIST_AUTO
+    from .models import DutyWaitlistEntry
+    event = slot.event
+    if not waitlist_active(event):
+        return
+    auto = waitlist_mode(event) == WAITLIST_AUTO
+    queue = [slot.pk]
+    rounds = 0
+    while queue and rounds < 1000:
+        rounds += 1
+        slot_id = queue.pop(0)
+        with transaction.atomic():
+            current = _lock_slot(event, slot_id)
+            if current is None or not current.active:
+                continue
+            entries = DutyWaitlistEntry.objects.filter(
+                slot=current, status=DutyWaitlistEntry.STATUS_WAITING,
+            ).select_related("signup__order", "signup__slot").order_by("created", "id")
+            if not auto:
+                entries = entries.filter(notified_at__isnull=True)
+            free = current.free_count()
+            for entry in entries:
+                if free is not None and free <= 0:
+                    break
+                signup = entry.signup
+                valid = (
+                    signup.kind == DutySignup.KIND_SLOT
+                    and signup.status != DutySignup.STATUS_CANCELED
+                    and signup.order.status in VALID_ORDER_STATES
+                )
+                if not valid:
+                    entry.status = DutyWaitlistEntry.STATUS_REMOVED
+                    entry.save(update_fields=["status"])
+                    continue
+                if signup.slot_id == current.pk:
+                    entry.status = DutyWaitlistEntry.STATUS_FULFILLED
+                    entry.save(update_fields=["status"])
+                    continue
+                if auto:
+                    old = signup.slot
+                    was_active = signup.status == DutySignup.STATUS_ACTIVE
+                    signup.slot = current
+                    signup.status = DutySignup.STATUS_ACTIVE
+                    signup.save(update_fields=["slot", "status"])
+                    close_waitlist_entries(signup, fulfilled_slot=current)
+                    _log(signup.order, "pretix_parentduties.waitlist.moved", signup,
+                         old_slot=old.pk if old else None, old_slot_name=str(old) if old else None)
+                    _waitlist_mail(signup, entry, "auto")
+                    if old is not None and was_active:
+                        queue.append(old.pk)
+                else:
+                    entry.notified_at = now()
+                    entry.save(update_fields=["notified_at"])
+                    _log(signup.order, "pretix_parentduties.waitlist.notified", signup,
+                         waitlist_slot=current.pk, waitlist_slot_name=str(current))
+                    _waitlist_mail(signup, entry, "notify")
+                if free is not None:
+                    free -= 1
+
+
+def process_waitlist_for(*slots):
+    seen = set()
+    for slot in slots:
+        if slot is not None and slot.pk not in seen:
+            seen.add(slot.pk)
+            process_waitlist(slot)

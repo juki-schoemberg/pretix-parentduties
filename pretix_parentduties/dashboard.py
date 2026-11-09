@@ -19,7 +19,10 @@ def stats(event, subevent=None):
         Q(status=DutySignup.STATUS_NEEDS_REVIEW)
         | Q(kind=DutySignup.KIND_CANNOT_HELP, status=DutySignup.STATUS_ACTIVE)
     ).count()
+    from .models import DutyWaitlistEntry
+    waiting = DutyWaitlistEntry.objects.filter(event=event, status=DutyWaitlistEntry.STATUS_WAITING).count()
     return {
+        "waiting": waiting,
         "slots": slots,
         "capacity": capacity,
         "occupied": occupied,

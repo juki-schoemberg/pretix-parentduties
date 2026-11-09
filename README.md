@@ -45,7 +45,8 @@ The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
   `{parent_duty_time_from}`, `{parent_duty_time_to}`, `{parent_duty_time}`,
   `{parent_duty_helper_name}`, `{parent_duty_helper_phone}`,
   `{parent_duty_status}`, `{parent_duty_family_code}`, `{parent_duty_note}`,
-  `{parent_duty_url}`, `{parent_duty_free_spots}`, `{parent_duty_open_slots}`.
+  `{parent_duty_url}`, `{parent_duty_waitlist}`, `{parent_duty_free_spots}`,
+  `{parent_duty_open_slots}`.
 - **Self-service change and deeplink:** `{parent_duty_url}` is a secret link
   (no login) to the parents' duty page, also linked from the order page.
   Until a configurable deadline (absolute or relative to the event, e.g.
@@ -53,9 +54,23 @@ The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
   update helper name / phone. Withdrawing is not possible; after the deadline
   the page is read-only. Siblings change at the family's root order,
   exemptions stay admin decisions.
+- **Waitlist for full duties** (setting: off / notify / move automatically).
+  Families keep their duty and can additionally wait for a full one – in the
+  checkout or later on their duty page. When a spot becomes free (cancellation,
+  change, admin move, more capacity), the longest waiting family is notified
+  by e-mail or moved automatically; spots freed by a move are passed on in
+  turn. Both e-mail texts are editable. Backend list with remove action,
+  waiting count in the slot list and dashboard, `{parent_duty_waitlist}`.
+- **Reminder e-mail:** one click in the settings creates a ready-made scheduled
+  e-mail (pretix “Send out emails” module), e.g. 7 days before the event, for
+  all orders with products that trigger the duty – with `{parent_duty}`,
+  `{parent_duty_description}` and `{parent_duty_url}`.
 - **Report fields** for [pretix-reportgenerator](https://github.com/juki-schoemberg/pretix-reportgenerator)
-  (`plugin.pretix_parentduties.*`), only if it is installed.
-- **REST API:** signups are included in the order's `plugin_data`.
+  (`plugin.pretix_parentduties.*`), only if it is installed, plus ready-made
+  report templates in [`docs/reports/`](docs/reports/): “Helferliste je Tag” and
+  “Familien in Klärung” (import them via the report generator's JSON import).
+- **REST API** for slots, signups and the waitlist, see [`docs/API.md`](docs/API.md);
+  signups are also included in the order's `plugin_data`.
 
 ## Installation
 

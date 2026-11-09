@@ -8,7 +8,7 @@ from i18nfield.forms import I18nFormField, I18nTextarea, I18nTextInput
 from . import conf
 from .models import DutySignup, DutySlot, ItemDutyConfig
 from .services import (
-    CHOICE_CANNOT_HELP, CHOICE_SIBLING, CHOICE_SKIP, CHOICE_SLOT, max_duties,
+    CHOICE_CANNOT_HELP, CHOICE_SIBLING, CHOICE_SKIP, CHOICE_SLOT, max_duties, waitlist_active,
 )
 
 ASK_CHOICES = (
@@ -51,6 +51,12 @@ class DutyChoiceForm(forms.Form):
             label=_("Duty"), choices=choices, required=True,
             error_messages={"required": _("Please choose a duty.")},
         )
+        self.waitlist_offered = waitlist_active(event)
+        if self.waitlist_offered:
+            self.fields["waitlist"] = forms.MultipleChoiceField(
+                label=_("Waitlist"), required=False,
+                choices=[(str(slot.pk), str(slot.name)) for slot in slots if slot.is_full()],
+            )
         self.fields["sibling_code"] = forms.CharField(
             label=_("Order code of the sibling's registration"),
             help_text=_("You can find it in the confirmation email of the other registration."),
@@ -99,6 +105,8 @@ class DutyChoiceForm(forms.Form):
         choice = alternatives[0] if alternatives else CHOICE_SLOT
         data["choice"] = choice
         data["slots"] = [int(v) for v in slot_values]
+        if data.get("waitlist") and choice != CHOICE_SLOT:
+            self.add_error("waitlist", _("The waitlist is only available together with a duty you take on now."))
 
         s = self.event.settings
         if choice == CHOICE_SIBLING and not (data.get("sibling_code") or "").strip():
@@ -123,7 +131,15 @@ class DutyChoiceForm(forms.Form):
             "note": (d.get("reason") or "").strip() if choice == CHOICE_CANNOT_HELP else "",
             "helper_name": (d.get("helper_name") or "").strip() if choice == CHOICE_SLOT else "",
             "helper_phone": (d.get("helper_phone") or "").strip() if choice == CHOICE_SLOT else "",
+            "waitlist": [int(v) for v in d.get("waitlist") or []] if choice == CHOICE_SLOT else [],
         }
+
+
+def _validate_waitlist_settings(form, data):
+    if data.get("parentduties_waitlist_mode") == conf.WAITLIST_NOTIFY and not data.get("parentduties_change_until"):
+        form.add_error("parentduties_waitlist_mode", _(
+            "Please set a change deadline – otherwise parents cannot switch to the free spot themselves."
+        ))
 
 
 class DutyChangeForm(forms.Form):
@@ -309,7 +325,39 @@ class ParentDutySettingsForm(SettingsForm):
                     "or the link in {parent_duty_url}. Withdrawing is not possible. "
                     "Leave empty if only admins may change duties."),
     )
+    parentduties_waitlist_mode = forms.ChoiceField(
+        label=_("Waitlist for full duties"),
+        choices=(
+            (conf.WAITLIST_OFF, _("Off")),
+            (conf.WAITLIST_NOTIFY, _("Notify by e-mail, parents switch themselves")),
+            (conf.WAITLIST_AUTO, _("Move automatically and notify by e-mail")),
+        ),
+        help_text=_("Families keep their current duty and can additionally wait for a full one. When a spot "
+                    "becomes free, the longest waiting family is notified or moved. Works until the change "
+                    "deadline and the start of the event. “Notify” requires a change deadline."),
+    )
+    parentduties_waitlist_notify_subject = I18nFormField(
+        label=_("E-mail subject: spot free"), widget=I18nTextInput, required=True,
+    )
+    parentduties_waitlist_notify_text = I18nFormField(
+        label=_("E-mail text: spot free"), widget=I18nTextarea, required=True,
+        help_text=_("Available placeholders: all order placeholders such as {parent_duty} and {parent_duty_url}, "
+                    "plus {parent_duty_waitlist_slot}."),
+    )
+    parentduties_waitlist_auto_subject = I18nFormField(
+        label=_("E-mail subject: moved automatically"), widget=I18nTextInput, required=True,
+    )
+    parentduties_waitlist_auto_text = I18nFormField(
+        label=_("E-mail text: moved automatically"), widget=I18nTextarea, required=True,
+        help_text=_("Available placeholders: all order placeholders such as {parent_duty} and {parent_duty_url}, "
+                    "plus {parent_duty_waitlist_slot}."),
+    )
     parentduties_new_items_trigger = forms.BooleanField(
         label=_("New products trigger the parent duty"), required=False,
         help_text=_("Default for products that have not been configured explicitly."),
     )
+
+    def clean(self):
+        data = super().clean()
+        _validate_waitlist_settings(self, data)
+        return data

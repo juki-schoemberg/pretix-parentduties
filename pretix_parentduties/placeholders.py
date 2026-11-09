@@ -114,6 +114,16 @@ def duty_all_text(order):
     return "\n".join(line for line in lines if line)
 
 
+def waitlist_text(order):
+    if order is None or not order.pk:
+        return ""
+    from .models import DutyWaitlistEntry
+    entries = DutyWaitlistEntry.objects.filter(
+        signup__order=order, status=DutyWaitlistEntry.STATUS_WAITING,
+    ).select_related("slot")
+    return "\n".join(_slot_text(e.slot) for e in entries)
+
+
 def duty_url(order):
     """Deeplink to the parents' duty page (secret link, no login needed)."""
     if order is None or not order.pk or not order.parentduty_signups.exists():
@@ -155,6 +165,8 @@ def order_value(name, order):
         return duty_all_text(order)
     if name == "parent_duty_url":
         return duty_url(order)
+    if name == "parent_duty_waitlist":
+        return waitlist_text(order)
     func = ORDER_VALUES[name][1]
     try:
         value = func(primary_signup(order))
@@ -177,6 +189,9 @@ def register_placeholders(sender, **kwargs):
         ))
     ph.append(SimpleFunctionalTextPlaceholder(
         "parent_duty_url", ["order"], duty_url, duty_url_sample,
+    ))
+    ph.append(SimpleFunctionalTextPlaceholder(
+        "parent_duty_waitlist", ["order"], waitlist_text, lambda event: _("Cake Monday"),
     ))
     ph.append(SimpleFunctionalTextPlaceholder(
         "parent_duty_free_spots", ["event"], free_spots, lambda event: "12",

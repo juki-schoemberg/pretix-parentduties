@@ -15,6 +15,16 @@ class DutySlotQuerySet(models.QuerySet):
                     signups__kind=DutySignup.KIND_SLOT,
                     signups__status=DutySignup.STATUS_ACTIVE,
                 ),
+                distinct=True,
+            )
+        )
+
+    def with_waiting(self):
+        return self.annotate(
+            waiting=Count(
+                "waitlist_entries",
+                filter=Q(waitlist_entries__status=DutyWaitlistEntry.STATUS_WAITING),
+                distinct=True,
             )
         )
 
@@ -187,3 +197,38 @@ class ItemDutyConfig(models.Model):
         default=False, verbose_name=_("This product triggers the parent duty"),
         help_text=_("If checked, buyers of this product are asked to commit to a parent duty during checkout."),
     )
+
+
+class DutyWaitlistEntry(models.Model):
+    """A family wants another (full) slot instead of its current duty.
+
+    The family always keeps its current duty; the waitlist only expresses a preference.
+    """
+
+    STATUS_WAITING = "waiting"
+    STATUS_FULFILLED = "fulfilled"
+    STATUS_REMOVED = "removed"
+    STATUS_CHOICES = (
+        (STATUS_WAITING, _("Waiting")),
+        (STATUS_FULFILLED, _("Fulfilled")),
+        (STATUS_REMOVED, _("Removed")),
+    )
+
+    event = models.ForeignKey(
+        "pretixbase.Event", on_delete=models.CASCADE, related_name="parentduty_waitlist",
+    )
+    slot = models.ForeignKey(DutySlot, on_delete=models.CASCADE, related_name="waitlist_entries")
+    signup = models.ForeignKey(DutySignup, on_delete=models.CASCADE, related_name="waitlist_entries")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_WAITING)
+    created = models.DateTimeField(auto_now_add=True)
+    notified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("created", "id")
+        constraints = [
+            models.UniqueConstraint(fields=["slot", "signup"], name="ppd_waitlist_unique_slot_signup"),
+        ]
+        indexes = [models.Index(fields=["slot", "status"])]
+
+    def __str__(self):
+        return "{} → {}".format(self.signup.order.code, self.slot)

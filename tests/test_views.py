@@ -1,6 +1,4 @@
 """Smoke tests for the backend pages."""
-import time
-
 import pytest
 from django.test import Client
 
@@ -10,19 +8,6 @@ from pretix_parentduties.models import DutySignup, DutySlot, ItemDutyConfig
 from pretix_parentduties.services import create_signups_for_order
 
 from .conftest import make_order
-
-
-@pytest.fixture
-def admin_client(event):
-    user = User.objects.create_user("admin@example.org", "admin")
-    team = Team.objects.create(organizer=event.organizer, all_event_permissions=True, all_events=True)
-    team.members.add(user)
-    c = Client()
-    c.login(email="admin@example.org", password="admin")
-    session = c.session
-    session["pretix_auth_login_time"] = time.time()
-    session.save()
-    return c
 
 
 @pytest.fixture
@@ -125,9 +110,40 @@ def test_settings(admin_client, event):
     r = admin_client.post(url(event, "settings/"), {
         "parentduties_live": "on", "parentduties_title_0": "Elterndienst", "parentduties_intro_0": "",
         "parentduties_max_per_family": "3", "parentduties_ask_name": "optional", "parentduties_ask_phone": "off",
+        "parentduties_waitlist_mode": "auto",
+        "parentduties_waitlist_notify_subject_0": "Frei", "parentduties_waitlist_notify_text_0": "{parent_duty_url}",
+        "parentduties_waitlist_auto_subject_0": "Verschoben", "parentduties_waitlist_auto_text_0": "{parent_duty}",
     })
     assert r.status_code == 302
     event.settings.flush()
     assert event.settings.parentduties_max_per_family == 3
     assert event.settings.parentduties_ask_phone == "off"
     assert not event.settings.parentduties_required
+    assert event.settings.parentduties_waitlist_mode == "auto"
+
+
+def test_reminder_rule(admin_client, event, item, donation, slot):
+    from pretix.plugins.sendmail.models import Rule
+    r = admin_client.post(url(event, "settings/reminder"), {"days": "5"})
+    assert r.status_code == 302 and "/sendmail/rules/" in r["Location"]
+    event.refresh_from_db()
+    assert "pretix.plugins.sendmail" in event.get_plugins()
+    rule = Rule.objects.get(event=event)
+    assert not rule.all_products and list(rule.limit_products.all()) == [item]
+    assert rule.send_offset_days == 5 and not rule.date_is_absolute and not rule.offset_is_after
+    assert "{parent_duty}" in str(rule.template) and "{parent_duty_url}" in str(rule.template)
+    assert admin_client.get(r["Location"]).status_code == 200
+
+    # the placeholders render for a real order
+    from pretix.base.email import get_email_context
+    from pretix_parentduties.services import create_signups_for_order
+    from .conftest import make_order
+    order = make_order(event, item)
+    create_signups_for_order(order, {"choice": "slot", "slots": [slot.pk]})
+    text = str(rule.template).format_map(get_email_context(event=event, order=order))
+    assert "Kuchen Montag" in text and order.secret in text
+
+
+def test_reminder_without_products(admin_client, event, donation):
+    r = admin_client.post(url(event, "settings/reminder"), {"days": "7"})
+    assert r.status_code == 302 and r["Location"].endswith("/parentduties/settings/")

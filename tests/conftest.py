@@ -1,4 +1,5 @@
 import datetime
+import time
 
 import pytest
 from django.utils import translation
@@ -90,3 +91,19 @@ def make_order(event, item, code=None, email="familie@example.org", status=None)
     )
     OrderPosition.objects.create(order=o, item=item, price=0, attendee_name_parts={"full_name": "Kind " + o.code})
     return o
+
+
+@pytest.fixture
+def admin_client(event):
+    from django.test import Client
+
+    from pretix.base.models import Team, User
+    user = User.objects.create_user("admin@example.org", "admin")
+    team = Team.objects.create(organizer=event.organizer, all_event_permissions=True, all_events=True)
+    team.members.add(user)
+    c = Client()
+    c.login(email="admin@example.org", password="admin")
+    session = c.session
+    session["pretix_auth_login_time"] = time.time()
+    session.save()
+    return c
