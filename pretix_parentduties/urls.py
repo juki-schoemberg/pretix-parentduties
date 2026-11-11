@@ -8,7 +8,16 @@ urlpatterns = [
     path(prefix, views.SlotListView.as_view(), name="slots"),
     path(prefix + "slots/add", views.SlotEditView.as_view(), name="slot.add"),
     path(prefix + "slots/<int:pk>/", views.SlotEditView.as_view(), name="slot.edit"),
+    path(prefix + "slots/reorder/<int:category>/", views.SlotReorderView.as_view(), name="slots.reorder"),
+    path(prefix + "slots/<int:pk>/move/<str:direction>", views.SlotMoveView.as_view(), name="slot.move"),
     path(prefix + "slots/<int:pk>/duplicate", views.SlotDuplicateView.as_view(), name="slot.duplicate"),
+    path(prefix + "categories/", views.CategoryListView.as_view(), name="categories"),
+    path(prefix + "categories/add", views.CategoryEditView.as_view(), name="category.add"),
+    path(prefix + "categories/reorder", views.CategoryReorderView.as_view(), name="categories.reorder"),
+    path(prefix + "categories/<int:pk>/", views.CategoryEditView.as_view(), name="category.edit"),
+    path(prefix + "categories/<int:pk>/delete", views.CategoryDeleteView.as_view(), name="category.delete"),
+    path(prefix + "categories/<int:pk>/move/<str:direction>", views.CategoryMoveView.as_view(),
+         name="category.move"),
     path(prefix + "slots/<int:pk>/delete", views.SlotDeleteView.as_view(), name="slot.delete"),
     path(prefix + "signups/", views.SignupListView.as_view(), name="signups"),
     path(prefix + "signups/add", views.SignupAddView.as_view(), name="signup.add"),
@@ -28,8 +37,11 @@ event_patterns = [
 # REST API (registered on pretix' event router, like the bundled plugins do)
 from pretix.api.urls import event_router  # noqa: E402
 
-from .api import DutySignupViewSet, DutySlotViewSet, DutyWaitlistViewSet  # noqa: E402
+from .api import (  # noqa: E402
+    DutyCategoryViewSet, DutySignupViewSet, DutySlotViewSet, DutyWaitlistViewSet,
+)
 
+event_router.register("parentduty_categories", DutyCategoryViewSet, basename="parentduty_categories")
 event_router.register("parentduty_slots", DutySlotViewSet, basename="parentduty_slots")
 event_router.register("parentduty_signups", DutySignupViewSet, basename="parentduty_signups")
 event_router.register("parentduty_waitlist", DutyWaitlistViewSet, basename="parentduty_waitlist")

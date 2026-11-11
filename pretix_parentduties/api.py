@@ -2,6 +2,7 @@
 
 Endpoints (below ``/api/v1/organizers/<organizer>/events/<event>/``):
 
+* ``parentduty_categories/`` – CRUD for categories (their ``position`` defines the order)
 * ``parentduty_slots/`` – CRUD for duty slots, with occupancy (``occupied``, ``free``, ``waiting``)
 * ``parentduty_signups/`` – read signups, filterable; ``POST …/<id>/move/`` moves one to another slot
 * ``parentduty_waitlist/`` – read waitlist entries, filterable
@@ -19,7 +20,7 @@ from rest_framework.response import Response
 from pretix.api.serializers.i18n import I18nAwareModelSerializer
 
 from . import services
-from .models import DutySignup, DutySlot, DutyWaitlistEntry
+from .models import DutyCategory, DutySignup, DutySlot, DutyWaitlistEntry
 
 PLUGIN = "pretix_parentduties"
 PERM_READ = "event.parentduties:read"
@@ -33,6 +34,33 @@ class PluginActiveMixin:
             raise NotFound("The parent duties plugin is not active for this event.")
 
 
+# ------------------------------------------------------------- categories
+
+class DutyCategorySerializer(I18nAwareModelSerializer):
+    class Meta:
+        model = DutyCategory
+        fields = ("id", "name", "description", "position")
+        read_only_fields = ("id",)
+
+
+class DutyCategoryViewSet(PluginActiveMixin, viewsets.ModelViewSet):
+    serializer_class = DutyCategorySerializer
+    queryset = DutyCategory.objects.none()
+    permission = PERM_READ
+    write_permission = PERM_WRITE
+
+    def get_queryset(self):
+        return DutyCategory.objects.filter(event=self.request.event).order_by("position", "id")
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save(event=self.request.event)
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        instance.delete()  # slots of the category become uncategorized
+
+
 # ------------------------------------------------------------------ slots
 
 class DutySlotSerializer(I18nAwareModelSerializer):
@@ -43,7 +71,7 @@ class DutySlotSerializer(I18nAwareModelSerializer):
     class Meta:
         model = DutySlot
         fields = (
-            "id", "name", "description", "tag", "subevent", "date", "time_from", "time_to",
+            "id", "name", "description", "category", "subevent", "date", "time_from", "time_to",
             "capacity", "active", "position", "limit_items", "occupied", "free", "waiting",
         )
         read_only_fields = ("id", "occupied", "free", "waiting")
@@ -53,6 +81,7 @@ class DutySlotSerializer(I18nAwareModelSerializer):
         event = self.context["request"].event if "request" in self.context else None
         if event is not None:
             self.fields["limit_items"].child_relation.queryset = event.items.all()
+            self.fields["category"].queryset = DutyCategory.objects.filter(event=event)
             self.fields["subevent"].queryset = event.subevents.all()
 
     def get_occupied(self, obj):
@@ -79,7 +108,7 @@ with scopes_disabled():
     class DutySlotFilter(FilterSet):
         class Meta:
             model = DutySlot
-            fields = ["active", "tag", "date", "subevent"]
+            fields = ["active", "category", "date", "subevent"]
 
 
 class DutySlotViewSet(PluginActiveMixin, viewsets.ModelViewSet):
@@ -92,7 +121,8 @@ class DutySlotViewSet(PluginActiveMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return DutySlot.objects.filter(event=self.request.event).with_occupancy().with_waiting() \
-            .prefetch_related("limit_items").order_by("position", "date", "time_from", "id")
+            .select_related("category").prefetch_related("limit_items") \
+            .order_by("category__position", "category_id", "position", "id")
 
     def _log(self, action_type, slot):
         self.request.event.log_action(

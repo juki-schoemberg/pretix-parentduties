@@ -3,15 +3,15 @@
 {% load bootstrap3 %}
 {% block subtitle %} <small>{% trans "Signups" %}</small>{% endblock %}
 {% block inner %}
-    <form class="form-inline row filter-form" method="get" style="margin-bottom: 15px">
+    <form class="form-inline row filter-form parentduties-filter" method="get">
         <div class="col-md-12">
             <select name="slot" class="form-control">
                 <option value="">{% trans "All duties" %}</option>
                 {% for s in slots %}<option value="{{ s.pk }}"{% if filters.slot == s.pk|stringformat:"s" %} selected{% endif %}>{{ s.full_display }}</option>{% endfor %}
             </select>
-            <select name="tag" class="form-control">
+            <select name="category" class="form-control">
                 <option value="">{% trans "All categories" %}</option>
-                {% for t in tags %}<option value="{{ t }}"{% if filters.tag == t %} selected{% endif %}>{{ t }}</option>{% endfor %}
+                {% for c in categories %}<option value="{{ c.pk }}"{% if filters.category == c.pk|stringformat:"s" %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
             </select>
             <select name="status" class="form-control">
                 <option value="">{% trans "All states (without canceled)" %}</option>
@@ -50,8 +50,8 @@
                     <td>{{ s.children|join:", " }}</td>
                     <td><small>{{ s.note|linebreaksbr }}</small></td>
                     {% if can_write %}
-                        <td class="text-right flip" style="white-space: nowrap">
-                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline" style="display:inline">
+                        <td class="text-right flip parentduties-actions">
+                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                 <select name="slot" class="form-control input-sm">
@@ -59,7 +59,7 @@
                                 </select>
                                 <button class="btn btn-default btn-sm" name="action" value="move">{% trans "Move" %}</button>
                             </form>
-                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline" style="display:inline">
+                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                 {% if s.status == "needs_review" %}<button class="btn btn-success btn-sm" name="action" value="confirm">{% trans "Confirm" %}</button>{% endif %}
@@ -67,7 +67,7 @@
                                 {% if s.kind == "sibling" %}<button class="btn btn-default btn-sm" name="action" value="unlink">{% trans "Unlink" %}</button>{% endif %}
                                 {% if s.status != "canceled" %}<button class="btn btn-danger btn-sm" name="action" value="cancel">{% trans "Cancel" %}</button>{% endif %}
                             </form>
-                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline" style="display:inline">
+                            <form method="post" action="{% url "plugins:pretix_parentduties:signup.action" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="form-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                                 <input type="text" name="code" class="form-control input-sm" size="7" placeholder="{% trans "Order code" %}">

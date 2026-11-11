@@ -9,13 +9,12 @@
         <fieldset>
             {% bootstrap_field form.name layout="control" %}
             {% bootstrap_field form.description layout="control" %}
-            {% bootstrap_field form.tag layout="control" %}
+            {% bootstrap_field form.category layout="control" %}
             {% if form.subevent %}{% bootstrap_field form.subevent layout="control" %}{% endif %}
             {% bootstrap_field form.date layout="control" %}
             {% bootstrap_field form.time_from layout="control" %}
             {% bootstrap_field form.time_to layout="control" %}
             {% bootstrap_field form.capacity layout="control" %}
-            {% bootstrap_field form.position layout="control" %}
             {% bootstrap_field form.active layout="control" %}
             {% bootstrap_field form.limit_items layout="control" %}
         </fieldset>

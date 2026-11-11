@@ -1,6 +1,10 @@
+import json
+from json import JSONDecodeError
+
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -17,9 +21,10 @@ from pretix.presale.views.order import OrderDetailMixin
 
 from . import services
 from .forms import (
-    DutyChangeForm, DutySlotForm, ParentDutySettingsForm, SignupAddForm, SignupLinkForm, SignupMoveForm,
+    DutyCategoryForm, DutyChangeForm, DutySlotForm, ParentDutySettingsForm, SignupAddForm, SignupLinkForm,
+    SignupMoveForm,
 )
-from .models import DutySignup, DutySlot, DutyWaitlistEntry, ItemDutyConfig
+from .models import DutyCategory, DutySignup, DutySlot, DutyWaitlistEntry, ItemDutyConfig
 from .signals import PERM_READ, PERM_WRITE, has_perm
 
 
@@ -45,12 +50,19 @@ class SlotListView(PluginViewMixin, EventPermissionRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        slots = list(DutySlot.objects.filter(event=self.request.event).with_occupancy().with_waiting().order_by(
-            "date", "time_from", "position", "id"
-        ))
+        slots = services.ordered_slots(
+            DutySlot.objects.filter(event=self.request.event).with_occupancy().with_waiting()
+        )
         for s in slots:
             s.free = s.free_count()
             s.percent = min(100, int(s.occupied * 100 / s.capacity)) if s.capacity else (100 if s.occupied else 0)
+        # every category (also empty ones, so slots can be dragged into them), uncategorized last
+        by_cat = {}
+        for s in slots:
+            by_cat.setdefault(s.category_id, []).append(s)
+        groups = [(c, by_cat.get(c.pk, [])) for c in DutyCategory.objects.filter(event=self.request.event)]
+        groups.append((None, by_cat.get(None, [])))
+        ctx["groups"] = groups
         ctx["slots"] = slots
         ctx["review_count"] = DutySignup.objects.filter(
             event=self.request.event, status=DutySignup.STATUS_NEEDS_REVIEW,
@@ -85,6 +97,43 @@ class SlotEditView(PluginViewMixin, EventPermissionRequiredMixin, FormView):
             user=self.request.user, data={"id": slot.pk, "name": str(slot.name)},
         )
         messages.success(self.request, _("The duty slot has been saved."))
+        return redirect(self.url("slots"))
+
+
+class SlotReorderView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    """Drag & drop in the slot list (pretix' dragndroplist.js): ``{"ids": [...]}`` for one category."""
+
+    permission = PERM_WRITE
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            ids = [str(i) for i in json.loads(request.body.decode("utf-8"))["ids"]]
+        except (JSONDecodeError, KeyError, TypeError, ValueError):
+            return HttpResponseBadRequest("expected JSON: {ids:[]}")
+        category = None
+        if int(kwargs["category"]):
+            category = get_object_or_404(DutyCategory, event=request.event, pk=kwargs["category"])
+        slots = list(DutySlot.objects.filter(event=request.event, pk__in=[i for i in ids if i.isdigit()]))
+        if len(slots) != len(ids):
+            raise Http404(_("Some of the provided object ids are invalid."))
+        changed = services.reorder(slots, ids, category=category)
+        if changed:
+            request.event.log_action("pretix_parentduties.slots.reordered", user=request.user,
+                                     data={"category": category.pk if category else None, "ids": ids})
+        return HttpResponse()
+
+
+class SlotMoveView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    """Arrow buttons in the slot list: one step up or down within the category."""
+
+    permission = PERM_WRITE
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        slot = get_object_or_404(DutySlot, event=request.event, pk=kwargs["pk"])
+        siblings = DutySlot.objects.filter(event=request.event, category=slot.category).order_by("position", "id")
+        services.move(slot, siblings, up=kwargs["direction"] == "up")
         return redirect(self.url("slots"))
 
 
@@ -140,8 +189,8 @@ class SignupListView(PluginViewMixin, EventPermissionRequiredMixin, ListView):
         g = self.request.GET
         if g.get("slot"):
             qs = qs.filter(slot_id=g["slot"])
-        if g.get("tag"):
-            qs = qs.filter(slot__tag=g["tag"])
+        if g.get("category"):
+            qs = qs.filter(slot__category_id=g["category"])
         if g.get("status"):
             qs = qs.filter(status=g["status"])
         if g.get("kind"):
@@ -165,9 +214,7 @@ class SignupListView(PluginViewMixin, EventPermissionRequiredMixin, ListView):
             s.status_text = services.status_label(s)
             s.children = [p.attendee_name for p in s.order.positions.all() if p.attendee_name]
         ctx["slots"] = DutySlot.objects.filter(event=self.request.event)
-        ctx["tags"] = sorted(set(
-            DutySlot.objects.filter(event=self.request.event).exclude(tag="").values_list("tag", flat=True)
-        ))
+        ctx["categories"] = DutyCategory.objects.filter(event=self.request.event)
         ctx["status_choices"] = DutySignup.STATUS_CHOICES
         ctx["kind_choices"] = DutySignup.KIND_CHOICES
         ctx["filters"] = self.request.GET
@@ -279,6 +326,92 @@ class WaitlistRemoveView(PluginViewMixin, EventPermissionRequiredMixin, View):
         services.leave_waitlist(entry, user=request.user)
         messages.success(request, _("The waitlist entry has been removed."))
         return redirect(self.url("waitlist"))
+
+
+# --------------------------------------------------------------- categories
+
+class CategoryListView(PluginViewMixin, EventPermissionRequiredMixin, TemplateView):
+    template_name = "pretix_parentduties/categories.html"
+    permission = PERM_READ
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["categories"] = DutyCategory.objects.filter(event=self.request.event).annotate(
+            slot_count=Count("slots"),
+        ).order_by("position", "id")
+        return ctx
+
+
+class CategoryEditView(PluginViewMixin, EventPermissionRequiredMixin, FormView):
+    template_name = "pretix_parentduties/category_form.html"
+    permission = PERM_WRITE
+    form_class = DutyCategoryForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if "pk" in self.kwargs:
+            kwargs["instance"] = get_object_or_404(DutyCategory, event=self.request.event, pk=self.kwargs["pk"])
+        else:
+            last = DutyCategory.objects.filter(event=self.request.event).order_by("-position").first()
+            kwargs["instance"] = DutyCategory(event=self.request.event, position=(last.position + 1) if last else 0)
+        kwargs["event"] = self.request.event
+        return kwargs
+
+    @transaction.atomic
+    def form_valid(self, form):
+        created = not form.instance.pk
+        cat = form.save()
+        self.request.event.log_action(
+            "pretix_parentduties.category.created" if created else "pretix_parentduties.category.changed",
+            user=self.request.user, data={"id": cat.pk, "name": str(cat.name)},
+        )
+        messages.success(self.request, _("The category has been saved."))
+        return redirect(self.url("categories"))
+
+
+class CategoryDeleteView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    permission = PERM_WRITE
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        cat = get_object_or_404(DutyCategory, event=request.event, pk=kwargs["pk"])
+        request.event.log_action("pretix_parentduties.category.deleted", user=request.user,
+                                 data={"id": cat.pk, "name": str(cat.name)})
+        cat.delete()  # its slots become uncategorized
+        messages.success(request, _("The category has been deleted. Its duties are now uncategorized."))
+        return redirect(self.url("categories"))
+
+
+class CategoryReorderView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    permission = PERM_WRITE
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            ids = [str(i) for i in json.loads(request.body.decode("utf-8"))["ids"]]
+        except (JSONDecodeError, KeyError, TypeError, ValueError):
+            return HttpResponseBadRequest("expected JSON: {ids:[]}")
+        cats = list(DutyCategory.objects.filter(event=request.event))
+        if sorted(ids) != sorted(str(c.pk) for c in cats):
+            raise Http404(_("Not all objects have been selected."))
+        if services.reorder(cats, ids):
+            request.event.log_action("pretix_parentduties.categories.reordered", user=request.user,
+                                     data={"ids": ids})
+        return HttpResponse()
+
+
+class CategoryMoveView(PluginViewMixin, EventPermissionRequiredMixin, View):
+    permission = PERM_WRITE
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        cat = get_object_or_404(DutyCategory, event=request.event, pk=kwargs["pk"])
+        services.move(cat, DutyCategory.objects.filter(event=request.event).order_by("position", "id"),
+                      up=kwargs["direction"] == "up")
+        nxt = request.POST.get("next") or ""
+        if not url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+            nxt = self.url("categories")
+        return redirect(nxt)
 
 
 # ----------------------------------------------------------------- products
@@ -488,6 +621,9 @@ class OrderDutyView(EventViewMixin, OrderDetailMixin, TemplateView):
                     sl.free = sl.free_count()
                     sl.full = sl.is_full() and sl.pk != s.slot_id
                     sl.checked = str(sl.pk) == str(s.form["slot"].value())
+                s.slot_groups = services.group_by_category(s.form.slots)
+                s.has_categories = any(cat is not None for cat, _slots in s.slot_groups)
+                s.id_prefix = f"ppd-{s.pk}-"
         return self.render_to_response(self.get_context_data(
             order=self.order,
             signups=signups,

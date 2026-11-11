@@ -7,6 +7,9 @@
             <a href="{% url "plugins:pretix_parentduties:slot.add" organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-primary">
                 <span class="fa fa-plus"></span> {% trans "Create a new duty slot" %}
             </a>
+            <a href="{% url "plugins:pretix_parentduties:categories" organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-default">
+                <span class="fa fa-folder-open"></span> {% trans "Categories" %}
+            </a>
         {% endif %}
         {% if review_count %}
             <a href="{% url "plugins:pretix_parentduties:signups" organizer=request.organizer.slug event=request.event.slug %}?review=1" class="btn btn-warning">
@@ -14,57 +17,80 @@
             </a>
         {% endif %}
     </p>
-    {% if slots %}
-        <div class="table-responsive">
-            <table class="table table-condensed table-hover">
-                <thead>
-                <tr>
-                    <th>{% trans "Duty" %}</th>
-                    <th>{% trans "Category" %}</th>
-                    <th>{% trans "Date" %}</th>
-                    <th>{% trans "Time" %}</th>
-                    <th style="min-width: 160px">{% trans "Occupancy" %}</th>
-                    <th>{% trans "Waitlist" %}</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for s in slots %}
-                    <tr{% if not s.active %} class="text-muted"{% endif %}>
-                        <td>
-                            <strong>{% if can_write %}<a href="{% url "plugins:pretix_parentduties:slot.edit" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</strong>
-                            {% if not s.active %}<span class="label label-default">{% trans "inactive" %}</span>{% endif %}
-                        </td>
-                        <td>{{ s.tag }}</td>
-                        <td>{{ s.date_display }}</td>
-                        <td>{{ s.time_display }}</td>
-                        <td>
-                            <a href="{% url "plugins:pretix_parentduties:signups" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">
-                                {{ s.occupied }}{% if s.capacity is not None %}/{{ s.capacity }}{% else %} / ∞{% endif %}
-                            </a>
-                            <div class="progress" style="margin-bottom:0; height: 8px;">
-                                <div class="progress-bar {% if s.capacity is not None and s.occupied >= s.capacity %}progress-bar-success{% elif s.occupied == 0 %}progress-bar-danger{% else %}progress-bar-info{% endif %}"
-                                     style="width: {% if s.occupied == 0 %}100{% else %}{{ s.percent }}{% endif %}%; {% if s.occupied == 0 %}opacity: .25;{% endif %}"></div>
-                            </div>
-                        </td>
-                        <td>{% if s.waiting %}<a href="{% url "plugins:pretix_parentduties:waitlist" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">{{ s.waiting }}</a>{% endif %}</td>
-                        <td class="text-right flip">
-                            {% if can_write %}
-                                <form method="post" action="{% url "plugins:pretix_parentduties:slot.duplicate" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" style="display:inline">
-                                    {% csrf_token %}
-                                    <button class="btn btn-default btn-sm" title="{% trans "Duplicate" %}"><span class="fa fa-copy"></span></button>
-                                </form>
-                                <form method="post" action="{% url "plugins:pretix_parentduties:slot.delete" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" style="display:inline">
-                                    {% csrf_token %}
-                                    <button class="btn btn-danger btn-sm" title="{% trans "Delete" %}"><span class="fa fa-trash"></span></button>
-                                </form>
-                            {% endif %}
-                        </td>
+    {% if slots or groups|length > 1 %}
+        {% if can_write %}
+            <p class="help-block">
+                {% trans "The order here is the order in the checkout. Drag the handle on the right to change it – also into another category – or use the arrow buttons." %}
+            </p>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <div class="table-responsive">
+                <table class="table table-condensed table-hover table-items">
+                    <thead>
+                    <tr>
+                        <th>{% trans "Duty" %}</th>
+                        <th>{% trans "Date" %}</th>
+                        <th>{% trans "Time" %}</th>
+                        <th class="parentduties-occupancy">{% trans "Occupancy" %}</th>
+                        <th>{% trans "Waitlist" %}</th>
+                        <th class="action-col-2"><span class="sr-only">{% trans "Actions" %}</span></th>
                     </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    {% for c, cslots in groups %}
+                        {% if c or cslots %}
+                            <tbody>
+                                <tr class="sortable-disabled"><th colspan="6" scope="colgroup" class="text-muted">
+                                    {% if c %}
+                                        {{ c.name }}
+                                        {% if can_write %}
+                                            <a href="{% url "plugins:pretix_parentduties:category.edit" organizer=request.organizer.slug event=request.event.slug pk=c.pk %}" title="{% trans "Edit" %}"><span class="fa fa-edit fa-fw"></span></a>
+                                        {% endif %}
+                                    {% else %}
+                                        {% trans "Without category" %}
+                                    {% endif %}
+                                </th></tr>
+                            </tbody>
+                            <tbody {% if can_write %}data-dnd-url="{% url "plugins:pretix_parentduties:slots.reorder" organizer=request.organizer.slug event=request.event.slug category=c.pk|default:0 %}" data-dnd-group="slots"{% endif %}>
+                            {% for s in cslots %}
+                                <tr data-dnd-id="{{ s.pk }}"{% if not s.active %} class="row-muted"{% endif %}>
+                                    <td>
+                                        <strong>{% if can_write %}<a href="{% url "plugins:pretix_parentduties:slot.edit" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</strong>
+                                        {% if not s.active %}<span class="label label-default">{% trans "inactive" %}</span>{% endif %}
+                                    </td>
+                                    <td>{{ s.date_display }}</td>
+                                    <td>{{ s.time_display }}</td>
+                                    <td class="parentduties-occupancy">
+                                        <a href="{% url "plugins:pretix_parentduties:signups" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">
+                                            {{ s.occupied }}{% if s.capacity is not None %}/{{ s.capacity }}{% else %} / ∞{% endif %}
+                                        </a>
+                                        <div class="progress">
+                                            {% if s.occupied == 0 %}
+                                                <div class="progress-bar progress-bar-danger parentduties-empty"></div>
+                                            {% else %}
+                                                <div class="progress-bar {% if s.capacity is not None and s.occupied >= s.capacity %}progress-bar-success{% else %}progress-bar-info{% endif %} parentduties-pct-{{ s.percent|stringformat:"d" }}"></div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{% if s.waiting %}<a href="{% url "plugins:pretix_parentduties:waitlist" organizer=request.organizer.slug event=request.event.slug %}?slot={{ s.pk }}">{{ s.waiting }}</a>{% endif %}</td>
+                                    <td class="text-right flip parentduties-actions">
+                                        {% if can_write %}
+                                            <button title="{% trans "Move up" %}" formaction="{% url "plugins:pretix_parentduties:slot.move" organizer=request.organizer.slug event=request.event.slug pk=s.pk direction="up" %}" class="btn btn-default btn-sm sortable-up"{% if forloop.first %} disabled{% endif %}><i class="fa fa-arrow-up"></i></button>
+                                            <button title="{% trans "Move down" %}" formaction="{% url "plugins:pretix_parentduties:slot.move" organizer=request.organizer.slug event=request.event.slug pk=s.pk direction="down" %}" class="btn btn-default btn-sm sortable-down"{% if forloop.last %} disabled{% endif %}><i class="fa fa-arrow-down"></i></button>
+                                            <span class="dnd-container" title="{% trans "Click and drag this button to reorder. Double click to show buttons for reordering." %}"></span>
+                                            <button title="{% trans "Duplicate" %}" formaction="{% url "plugins:pretix_parentduties:slot.duplicate" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="btn btn-default btn-sm"><i class="fa fa-copy"></i></button>
+                                            <button title="{% trans "Delete" %}" formaction="{% url "plugins:pretix_parentduties:slot.delete" organizer=request.organizer.slug event=request.event.slug pk=s.pk %}" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+            </div>
+        </form>
     {% else %}
         <div class="empty-collection">
             <p>{% trans "You haven't created any duty slots yet." %}</p>

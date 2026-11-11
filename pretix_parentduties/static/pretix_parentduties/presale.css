@@ -1,0 +1,51 @@
+/* pretix-parentduties – shop pages (checkout step, duty page).
+   pretix' Content-Security-Policy blocks inline styles, so all styling lives here. */
+
+.parentduties-slots .product-row .h4 {
+    margin-bottom: 4px;
+}
+.parentduties-slots .parentduties-description {
+    font-weight: normal;
+}
+.parentduties-slots .parentduties-description p:last-child {
+    margin-bottom: 0;
+}
+.parentduties-slots .parentduties-free {
+    margin: 4px 0 0;
+}
+.parentduties-slots .parentduties-when {
+    text-align: right;
+}
+.parentduties-slots .parentduties-when .parentduties-date {
+    display: block;
+    font-weight: bold;
+}
+.parentduties-slots .availability-box.gone .parentduties-waitlist {
+    color: #333;
+}
+/* radio buttons inside pretix' "select" button: highlight without JavaScript */
+.parentduties-slots .btn-checkbox:has(input:checked) {
+    background-color: #eee;
+}
+.parentduties-slots .parentduties-current {
+    display: block;
+    text-align: center;
+}
+.parentduties-slots .parentduties-waitlist {
+    display: block;
+    color: inherit;
+    margin-top: 6px;
+    font-weight: normal;
+    font-size: 90%;
+}
+.parentduties-slots .parentduties-waitlist input {
+    margin-right: 4px;
+}
+.parentduties-category-description {
+    margin-bottom: 10px;
+}
+@media (max-width: 767px) {
+    .parentduties-slots .parentduties-when {
+        text-align: left;
+    }
+}

@@ -1,0 +1,18 @@
+{% extends "pretix_parentduties/base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% block subtitle %} <small>{% if form.instance.pk %}{{ form.instance.name }}{% else %}{% trans "Create a new category" %}{% endif %}</small>{% endblock %}
+{% block inner %}
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        {% bootstrap_form_errors form %}
+        <fieldset>
+            {% bootstrap_field form.name layout="control" %}
+            {% bootstrap_field form.description layout="control" %}
+        </fieldset>
+        <div class="form-group submit-group">
+            <a href="{% url "plugins:pretix_parentduties:categories" organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-default btn-cancel">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn btn-primary btn-save">{% trans "Save" %}</button>
+        </div>
+    </form>
+{% endblock %}

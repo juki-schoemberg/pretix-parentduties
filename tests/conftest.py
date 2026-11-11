@@ -59,18 +59,30 @@ def donation(event):
 
 
 @pytest.fixture
-def slot(event):
+def category_cake(event):
+    from pretix_parentduties.models import DutyCategory
+    return DutyCategory.objects.create(event=event, name="Kuchen", position=1)
+
+
+@pytest.fixture
+def category_setup(event):
+    from pretix_parentduties.models import DutyCategory
+    return DutyCategory.objects.create(event=event, name="Aufbau", position=0)
+
+
+@pytest.fixture
+def slot(event, category_cake):
     from pretix_parentduties.models import DutySlot
     return DutySlot.objects.create(
-        event=event, name="Kuchen Montag", tag="Kuchen", capacity=2,
+        event=event, name="Kuchen Montag", category=category_cake, capacity=2,
         date=datetime.date(2027, 7, 12), time_from=datetime.time(14), time_to=datetime.time(16),
     )
 
 
 @pytest.fixture
-def slot2(event):
+def slot2(event, category_setup):
     from pretix_parentduties.models import DutySlot
-    return DutySlot.objects.create(event=event, name="Aufbau Freitag", tag="Aufbau", capacity=5)
+    return DutySlot.objects.create(event=event, name="Aufbau Freitag", category=category_setup, capacity=5)
 
 
 _counter = {"n": 0}

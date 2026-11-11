@@ -36,7 +36,7 @@ def test_annotations(event, item, slot):
         qs = qs.annotate(**f.annotation(ctx))
     rows = {o.code: o for o in qs}
     assert rows[first.code].ppd_helper_name == "Anna"
-    assert rows[first.code].ppd_slot_tag == "Kuchen"
+    assert "Kuchen" in str(rows[first.code].ppd_slot_category_name)
     assert rows[first.code].ppd_family_code == first.code
     assert rows[second.code].ppd_family_code == first.code
     assert rows[first.code].ppd_duty_count == 1

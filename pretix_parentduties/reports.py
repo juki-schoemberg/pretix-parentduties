@@ -64,7 +64,8 @@ def _choices(choices):
 FIELDS = [
     # name, label, datatype, orm source, operators, sortable, extra kwargs
     ("duty", _("Duty"), DataType.I18N, "slot__name", (Operator.CONTAINS, Operator.EXACT), True, {}),
-    ("category", _("Duty category"), DataType.STRING, "slot__tag", (Operator.EXACT,), True, {}),
+    ("category", _("Duty category"), DataType.I18N, "slot__category__name", (Operator.EXACT, Operator.CONTAINS),
+     True, {}),
     ("date", _("Duty date"), DataType.DATE, "slot__date", (Operator.BETWEEN, Operator.EXACT), True, {}),
     ("time_from", _("Duty start time"), DataType.TIME, "slot__time_from", (), True, {}),
     ("time_to", _("Duty end time"), DataType.TIME, "slot__time_to", (), True, {}),

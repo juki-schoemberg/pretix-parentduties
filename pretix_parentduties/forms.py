@@ -6,7 +6,7 @@ from pretix.base.reldate import RelativeDateTimeField
 from i18nfield.forms import I18nFormField, I18nTextarea, I18nTextInput
 
 from . import conf
-from .models import DutySignup, DutySlot, ItemDutyConfig, VoucherDutyConfig
+from .models import DutyCategory, DutySignup, DutySlot, ItemDutyConfig, VoucherDutyConfig
 from .services import (
     CHOICE_CANNOT_HELP, CHOICE_SIBLING, CHOICE_SKIP, CHOICE_SLOT, max_duties, waitlist_active,
 )
@@ -204,11 +204,11 @@ class ItemDutyConfigForm(forms.ModelForm):
 class DutySlotForm(I18nModelForm):
     class Meta:
         model = DutySlot
-        # ``subevent`` and ``limit_items`` are added in __init__: building their
-        # querysets at import time would fail because of django-scopes.
+        # ``category``, ``subevent`` and ``limit_items`` are added in __init__: building their
+        # querysets at import time would fail because of django-scopes. The position is set
+        # by sorting in the slot list.
         fields = [
-            "name", "description", "tag", "date", "time_from", "time_to",
-            "capacity", "active", "position",
+            "name", "description", "date", "time_from", "time_to", "capacity", "active",
         ]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),
@@ -218,6 +218,12 @@ class DutySlotForm(I18nModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["category"] = forms.ModelChoiceField(
+            queryset=DutyCategory.objects.filter(event=self.event), required=False,
+            label=_("Category"), initial=self.instance.category_id,
+            help_text=_("Manage categories and their order under Parent duties → Categories."),
+        )
+        self.order_fields(["name", "category", "description"])
         self.fields["limit_items"] = forms.ModelMultipleChoiceField(
             queryset=self.event.items.all(), required=False, widget=forms.CheckboxSelectMultiple,
             label=DutySlot._meta.get_field("limit_items").verbose_name,
@@ -240,10 +246,24 @@ class DutySlotForm(I18nModelForm):
     def save(self, commit=True):
         if "subevent" in self.cleaned_data:
             self.instance.subevent = self.cleaned_data["subevent"]
+        category = self.cleaned_data.get("category")
+        if not self.instance.pk or self.instance.category_id != (category.pk if category else None):
+            # new slot or moved to another category: append at the end of that category
+            last = DutySlot.objects.filter(event=self.event, category=category).exclude(
+                pk=self.instance.pk,
+            ).order_by("-position").values_list("position", flat=True).first()
+            self.instance.position = (last + 1) if last is not None else 0
+        self.instance.category = category
         slot = super().save(commit=commit)
         if commit:
             slot.limit_items.set(self.cleaned_data.get("limit_items") or [])
         return slot
+
+
+class DutyCategoryForm(I18nModelForm):
+    class Meta:
+        model = DutyCategory
+        fields = ["name", "description"]
 
 
 class SignupMoveForm(forms.Form):

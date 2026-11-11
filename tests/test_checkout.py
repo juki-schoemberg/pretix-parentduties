@@ -119,8 +119,11 @@ def test_full_slot_disabled_and_rejected(shop, item, slot, slot2):
 
     c = Client()
     r = fill_cart(c, shop, item)
-    assert re.search(rf'value="{slot.pk}"\s+disabled', r.content.decode())
-    assert not re.search(rf'value="{slot2.pk}"\s+disabled', r.content.decode())
+    html = r.content.decode()
+    # full slot: shown as fully booked, without an input to choose it
+    assert not re.search(rf'name="parentduties-duty" value="{slot.pk}"', html)
+    assert re.search(rf'name="parentduties-duty" value="{slot2.pk}"', html)
+    assert "FULLY BOOKED" in html
     r = c.post(step_url(shop), {"parentduties-duty": str(slot.pk), "parentduties-helper_name": "A"})
     assert r.status_code == 200  # form re-rendered with error
     assert "already full" in r.content.decode()

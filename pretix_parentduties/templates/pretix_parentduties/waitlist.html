@@ -12,7 +12,7 @@
             {% trans "The waitlist is currently not being processed (deadline passed, event started or checkout step not live)." %}
         </div>
     {% endif %}
-    <form class="form-inline" method="get" style="margin-bottom: 15px">
+    <form class="form-inline parentduties-filter" method="get">
         <select name="slot" class="form-control">
             <option value="">{% trans "All duties" %}</option>
             {% for s in slots %}<option value="{{ s.pk }}"{% if filters.slot == s.pk|stringformat:"s" %} selected{% endif %}>{{ s.full_display }}</option>{% endfor %}

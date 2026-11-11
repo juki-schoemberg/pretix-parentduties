@@ -15,7 +15,7 @@
             <tbody>
             {% for i in items %}
                 <tr>
-                    <td><label for="item_{{ i.pk }}" style="font-weight:normal">{{ i.name }}</label>
+                    <td><label for="item_{{ i.pk }}" class="parentduties-label-normal">{{ i.name }}</label>
                         {% if not i.configured %}<small class="text-muted">({% trans "default" %})</small>{% endif %}</td>
                     <td>{{ i.category.name|default:"" }}</td>
                     <td class="text-center"><input type="checkbox" id="item_{{ i.pk }}" name="items" value="{{ i.pk }}"{% if i.triggers %} checked{% endif %}{% if not can_write %} disabled{% endif %}></td>
