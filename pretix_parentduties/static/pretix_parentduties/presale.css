@@ -49,3 +49,21 @@
         text-align: left;
     }
 }
+
+/* details of an alternative (e.g. the sibling's order code): only while it is selected */
+.parentduties-alt .parentduties-alt-detail {
+    display: none;
+    margin-top: 10px;
+}
+.parentduties-alt:has(input[name="parentduties-duty"]:checked) .parentduties-alt-detail {
+    display: block;
+}
+
+/* "Who will help?" only matters for a duty: hide it while an alternative is selected and no duty
+   (with several duties per family, both can be ticked - the server then asks to choose one) */
+.parentduties-step:has(.parentduties-alt input:checked):not(:has(.product-row:not(.parentduties-alt) input[name="parentduties-duty"]:checked)) .parentduties-helper {
+    display: none;
+}
+.parentduties-helper .form-horizontal {
+    margin-top: 10px;
+}

@@ -189,3 +189,46 @@ def test_multiple(shop, item, slot, slot2):
     assert r.redirect_chain[-1][0].endswith("/checkout/confirm/")
     confirm(c, shop)
     assert DutySignup.objects.filter(kind="slot", status="active").count() == 2
+
+
+def test_sibling_code_field_sits_in_sibling_option(shop, item, slot):
+    c = Client()
+    html = fill_cart(c, shop, item).content.decode()
+    article = re.search(r'<article[^>]*id="ppd-alt-sibling".*?</article>', html, re.S).group(0)
+    assert 'name="parentduties-sibling_code"' in article
+    assert html.count('name="parentduties-sibling_code"') == 1
+    # without the sibling option there is no code field at all
+    shop.settings.parentduties_sibling_code = False
+    html = c.get(step_url(shop)).content.decode()
+    assert 'name="parentduties-sibling_code"' not in html
+
+
+def _label_of(html, field):
+    """Label HTML of a field as rendered by pretix' checkout renderer."""
+    return re.search(rf'<label[^>]*for="id_parentduties-{field}"[^>]*>.*?</label>', html, re.S).group(0)
+
+
+def test_required_markers_and_helper_section(shop, item, slot):
+    shop.settings.parentduties_ask_name = "required"
+    shop.settings.parentduties_ask_phone = "optional"
+    shop.settings.parentduties_allow_cannot_help = True
+    shop.settings.parentduties_cannot_help_reason_required = True
+    c = Client()
+    html = fill_cart(c, shop, item).content.decode()
+    assert "label-required" in _label_of(html, "helper_name")
+    assert "label-required" not in _label_of(html, "helper_phone")
+    assert "label-required" in _label_of(html, "sibling_code")
+    assert "label-required" in _label_of(html, "reason")
+    # helper fields are a section with a heading, not a panel; reason sits in its option
+    section = re.search(r'<section class="item-category parentduties-helper".*?</section>', html, re.S).group(0)
+    assert 'name="parentduties-helper_name"' in section and "panel" not in section
+    article = re.search(r'<article[^>]*id="ppd-alt-cannot_help".*?</article>', html, re.S).group(0)
+    assert 'name="parentduties-reason"' in article
+    # none of these fields is HTML-required: they only apply to some choices
+    for field in ("helper_name", "sibling_code", "reason"):
+        tag = re.search(rf'<(input|textarea)[^>]*name="parentduties-{field}"[^>]*>', html).group(0)
+        assert " required" not in tag
+
+    shop.settings.parentduties_cannot_help_reason_required = False
+    html = c.get(step_url(shop)).content.decode()
+    assert "label-required" not in _label_of(html, "reason")

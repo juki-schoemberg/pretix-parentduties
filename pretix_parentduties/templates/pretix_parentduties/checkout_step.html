@@ -4,7 +4,7 @@
 {% load rich_text %}
 {% block inner %}
     <h3>{{ title }}</h3>
-    <form method="post">
+    <form method="post" class="parentduties-step">
         {% csrf_token %}
         {% if family_known %}
             <div class="alert alert-success">
@@ -29,11 +29,22 @@
                 {% else %}
                     {% include "pretix_parentduties/fragment_slots.html" with groups=slot_groups input_type="radio" input_name=form.duty.html_name id_prefix="ppd-" show_waitlist=waitlist_offered waitlist_name="parentduties-waitlist" show_uncategorized_heading=has_categories %}
                 {% endif %}
+                {% if form.helper_name or form.helper_phone %}
+                    {# hidden while one of the alternatives is selected (presale.css) #}
+                    <section class="item-category parentduties-helper" aria-labelledby="ppd-helper">
+                        <h3 class="h3" id="ppd-helper">{% trans "Who will help?" %}</h3>
+                        <div class="form-horizontal">
+                            {% if form.helper_name %}{% bootstrap_field form.helper_name layout="checkout" %}{% endif %}
+                            {% if form.helper_phone %}{% bootstrap_field form.helper_phone layout="checkout" %}{% endif %}
+                        </div>
+                    </section>
+                {% endif %}
                 {% if alternatives %}
                     <section class="item-category parentduties-slots" aria-labelledby="ppd-alternatives">
                         <h3 class="h3" id="ppd-alternatives">{% trans "Alternatives" %}</h3>
                         {% for alt in alternatives %}
-                            <article class="row product-row simple" aria-labelledby="ppd-alt-{{ alt.value }}-legend">
+                            <article class="row product-row simple parentduties-alt" id="ppd-alt-{{ alt.value }}"
+                                     aria-labelledby="ppd-alt-{{ alt.value }}-legend">
                                 <div class="col-md-10 col-sm-9 col-xs-12">
                                     <h4 class="h4" id="ppd-alt-{{ alt.value }}-legend">{{ alt.label }}</h4>
                                 </div>
@@ -47,19 +58,21 @@
                                     </label>
                                 </div>
                                 <div class="clearfix"></div>
+                                {% if alt.value == "sibling" and offer_sibling %}
+                                    {# shown only while this option is selected (CSS :has, see presale.css) #}
+                                    <div class="col-xs-12 parentduties-alt-detail form-horizontal">
+                                        {% bootstrap_field form.sibling_code layout="checkout" %}
+                                    </div>
+                                {% elif alt.value == "cannot_help" and offer_cannot_help %}
+                                    <div class="col-xs-12 parentduties-alt-detail form-horizontal">
+                                        {% bootstrap_field form.reason layout="checkout" %}
+                                    </div>
+                                {% endif %}
                             </article>
                         {% endfor %}
                     </section>
                 {% endif %}
             </fieldset>
-            <div class="panel panel-default">
-                <div class="panel-body">
-                    {% if form.helper_name %}{% bootstrap_field form.helper_name layout="checkout" %}{% endif %}
-                    {% if form.helper_phone %}{% bootstrap_field form.helper_phone layout="checkout" %}{% endif %}
-                    {% if offer_sibling %}{% bootstrap_field form.sibling_code layout="checkout" %}{% endif %}
-                    {% if offer_cannot_help %}{% bootstrap_field form.reason layout="checkout" %}{% endif %}
-                </div>
-            </div>
         {% endif %}
         <div class="row checkout-button-row">
             <div class="col-md-4 col-sm-6">

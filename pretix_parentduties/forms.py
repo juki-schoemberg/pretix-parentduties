@@ -67,7 +67,7 @@ class DutyChoiceForm(forms.Form):
         )
         if s.parentduties_ask_name != conf.ASK_OFF:
             self.fields["helper_name"] = forms.CharField(
-                label=_("Who will help?"), max_length=255,
+                label=_("Name"), max_length=255,
                 required=False,
                 help_text=_("Name of the person who will take on the duty."),
             )
@@ -76,6 +76,14 @@ class DutyChoiceForm(forms.Form):
                 label=_("Phone number"), max_length=64, required=False,
                 help_text=_("So we can reach you on the day of the duty."),
             )
+        # These fields are only required for some choices (validated in clean()), so they are not
+        # HTML-required. pretix' checkout renderer still shows "required" next to the label.
+        self.fields["sibling_code"]._show_required = True
+        self.fields["reason"]._show_required = bool(s.parentduties_cannot_help_reason_required)
+        if "helper_name" in self.fields:
+            self.fields["helper_name"]._show_required = s.parentduties_ask_name == conf.ASK_REQUIRED
+        if "helper_phone" in self.fields:
+            self.fields["helper_phone"]._show_required = s.parentduties_ask_phone == conf.ASK_REQUIRED
 
     @property
     def slot_ids(self):

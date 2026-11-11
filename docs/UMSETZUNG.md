@@ -1,6 +1,6 @@
 # Umsetzungsstand
 
-Stand: 11.11.2026, Version 0.5.0, getestet gegen pretix 2026.9.0 (Python 3.13).
+Stand: 11.11.2026, Version 0.5.1, getestet gegen pretix 2026.9.0 (Python 3.13).
 
 ## Fertig (Ausbaustufe 1 / MVP)
 
@@ -91,6 +91,14 @@ Zusagen in der REST-API der Bestellung (`plugin_data`).
 - Darstellung im Stil der pretix-Produktliste: Name fett, Beschreibung normal, „noch X Plätze frei“
   klein darunter, Datum mit Wochentag und Uhrzeit in eigener Spalte, „Auswählen“-Button rechts,
   volle Dienste als „Ausgebucht“ (mit Warteliste-Häkchen, falls aktiv).
+- Das Feld „Bestellcode der Geschwister-Anmeldung“ steht direkt unter der Option „Ein
+  Geschwisterkind ist schon angemeldet“ und erscheint erst, wenn diese ausgewählt ist (per CSS,
+  ohne JavaScript; sehr alte Browser zeigen es einfach dauerhaft).
+  Genauso steht „Grund“ direkt unter „Wir können leider keinen Dienst übernehmen“.
+- „Wer hilft mit?“ (Name, Telefon) ist ein eigener Abschnitt im Stil von pretix' „Deine
+  Informationen“ und wird ausgeblendet, sobald eine Alternative gewählt ist. Pflichtfelder sind wie
+  bei pretix mit „erforderlich“ gekennzeichnet; weil sie nur für bestimmte Auswahlen Pflicht sind,
+  prüft das Plugin sie selbst statt per HTML-`required`.
 - pretix' Content-Security-Policy blockiert Inline-Styles; alle Styles liegen deshalb in
   `static/pretix_parentduties/presale.css` und `control.css`.
 - API: `parentduty_categories/` neu, bei Slots ersetzt `category` das Feld `tag`.
