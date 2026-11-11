@@ -232,3 +232,17 @@ class DutyWaitlistEntry(models.Model):
 
     def __str__(self):
         return "{} → {}".format(self.signup.order.code, self.slot)
+
+
+class VoucherDutyConfig(models.Model):
+    """Per-voucher switch: redeeming this voucher exempts from the parent duty.
+
+    ``whole_order``: the whole order is exempt (e.g. a staff pass bought together with the
+    children's tickets); otherwise only the position redeemed with the voucher.
+    """
+
+    voucher = models.OneToOneField(
+        "pretixbase.Voucher", on_delete=models.CASCADE, related_name="parentduty_config",
+    )
+    skips_duty = models.BooleanField(default=False, verbose_name=_("Exempt from the parent duty"))
+    whole_order = models.BooleanField(default=True, verbose_name=_("Applies to the whole order"))

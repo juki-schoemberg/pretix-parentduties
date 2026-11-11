@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pretix-parentduties\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-09 08:35+0000\n"
+"POT-Creation-Date: 2026-11-11 01:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: JuKi Schömberg e.V.\n"
 "Language-Team: English\n"
@@ -54,6 +54,7 @@ msgstr "Other duties"
 
 #: conf.py:20 forms.py:186
 #: templates/pretix_parentduties/confirm_content.html:5
+#: templates/pretix_parentduties/voucher_form.html:4
 msgid "Parent duty"
 msgstr "Parent duty"
 
@@ -69,7 +70,6 @@ msgstr ""
 
 #: conf.py:44
 #, python-brace-format
-#| msgid "Your parent duty has been changed. Thank you!"
 msgid "Your parent duty has changed: {parent_duty_name}"
 msgstr "Your parent duty has changed: {parent_duty_name}"
 
@@ -169,7 +169,7 @@ msgstr "Duty"
 msgid "Please choose a duty."
 msgstr "Please choose a duty."
 
-#: forms.py:57 signals.py:231 templates/pretix_parentduties/order_duty.html:65
+#: forms.py:57 signals.py:245 templates/pretix_parentduties/order_duty.html:65
 #: templates/pretix_parentduties/settings.html:29
 #: templates/pretix_parentduties/slots.html:27
 #: templates/pretix_parentduties/waitlist.html:3
@@ -413,6 +413,34 @@ msgstr "New products trigger the parent duty"
 msgid "Default for products that have not been configured explicitly."
 msgstr "Default for products that have not been configured explicitly."
 
+#: forms.py:385 models.py:247
+#| msgid "Helper of the parent duty"
+msgid "Exempt from the parent duty"
+msgstr "Exempt from the parent duty"
+
+#: forms.py:386
+msgid ""
+"Orders with this voucher do not need a parent duty, even if their products "
+"normally trigger it."
+msgstr ""
+"Orders with this voucher do not need a parent duty, even if their products "
+"normally trigger it."
+
+#: forms.py:392 models.py:248
+#| msgid "All parent duties of the order"
+msgid "Applies to the whole order"
+msgstr "Applies to the whole order"
+
+#: forms.py:393
+msgid ""
+"Checked: the whole order is exempt, including all other products – e.g. a "
+"staff pass bought together with the children's tickets. Unchecked: only the "
+"product bought with this voucher is exempt."
+msgstr ""
+"Checked: the whole order is exempt, including all other products – e.g. a "
+"staff pass bought together with the children's tickets. Unchecked: only the "
+"product bought with this voucher is exempt."
+
 #: logentrytypes.py:9
 #, python-brace-format
 msgid "Parent duty registered ({kind}, {status})."
@@ -447,7 +475,6 @@ msgstr "Parent duty changed ({kind}, {status})."
 
 #: logentrytypes.py:18
 #, python-brace-format
-#| msgid "Parent duty changed by the customer to “{slot_name}”."
 msgid "Put on the waitlist for “{waitlist_slot_name}”."
 msgstr "Put on the waitlist for “{waitlist_slot_name}”."
 
@@ -463,7 +490,6 @@ msgstr "Notified about a free spot in “{waitlist_slot_name}”."
 
 #: logentrytypes.py:21
 #, python-brace-format
-#| msgid "Parent duty changed by the customer to “{slot_name}”."
 msgid "Moved from the waitlist to “{slot_name}”."
 msgstr "Moved from the waitlist to “{slot_name}”."
 
@@ -641,7 +667,7 @@ msgstr "covered by your registration %(code)s"
 msgid "covered by a sibling's registration (under review)"
 msgstr "covered by a sibling's registration (under review)"
 
-#: placeholders.py:53 services.py:536
+#: placeholders.py:53 services.py:563
 msgid "exempt"
 msgstr "exempt"
 
@@ -709,7 +735,7 @@ msgstr "Helper phone of the parent duty"
 msgid "Status of the parent duty"
 msgstr "Status of the parent duty"
 
-#: placeholders.py:99 services.py:534
+#: placeholders.py:99 services.py:561
 msgid "committed"
 msgstr "committed"
 
@@ -784,7 +810,7 @@ msgstr ""
 "See you soon!\n"
 "{event}"
 
-#: reports.py:19 signals.py:55 signals.py:222 signals.py:245
+#: reports.py:19 signals.py:55 signals.py:236 signals.py:259
 #: templates/pretix_parentduties/base.html:3
 #: templates/pretix_parentduties/base.html:5
 #: templates/pretix_parentduties/control_order_info.html:4
@@ -828,19 +854,19 @@ msgstr "Family order code"
 msgid "Number of duties"
 msgstr "Number of duties"
 
-#: services.py:530
+#: services.py:557
 msgid "under review"
 msgstr "under review"
 
-#: services.py:532
+#: services.py:559
 msgid "canceled"
 msgstr "canceled"
 
-#: services.py:535
+#: services.py:562
 msgid "covered by sibling"
 msgstr "covered by sibling"
 
-#: services.py:537
+#: services.py:564
 msgid "cannot help"
 msgstr "cannot help"
 
@@ -861,25 +887,25 @@ msgstr "Parent duty overbooked"
 msgid "Order {order.code}: the chosen parent duty was already full"
 msgstr "Order {order.code}: the chosen parent duty was already full"
 
-#: signals.py:227 templates/pretix_parentduties/slots.html:3
+#: signals.py:241 templates/pretix_parentduties/slots.html:3
 msgid "Duty slots"
 msgstr "Duty slots"
 
-#: signals.py:229 templates/pretix_parentduties/signups.html:4
+#: signals.py:243 templates/pretix_parentduties/signups.html:4
 msgid "Signups"
 msgstr "Signups"
 
-#: signals.py:233 templates/pretix_parentduties/items.html:3
+#: signals.py:247 templates/pretix_parentduties/items.html:3
 #: templates/pretix_parentduties/settings.html:37
 msgid "Products"
 msgstr "Products"
 
-#: signals.py:325
+#: signals.py:342
 msgctxt "shredder"
 msgid "Parent duty details"
 msgstr "Parent duty details"
 
-#: signals.py:327
+#: signals.py:344
 msgid ""
 "This will remove helper names, phone numbers and notes of parent duties."
 msgstr ""
@@ -976,16 +1002,22 @@ msgstr "We commit to taking on the chosen duty."
 msgid "additional"
 msgstr "additional"
 
-#: templates/pretix_parentduties/control_order_info.html:21
+#: templates/pretix_parentduties/control_order_info.html:22
+#, python-format
+#| msgid "No parent duty registered for this order."
+msgid "No parent duty required: exempted by voucher %(codes)s."
+msgstr "No parent duty required: exempted by voucher %(codes)s."
+
+#: templates/pretix_parentduties/control_order_info.html:27
 #: templates/pretix_parentduties/order_duty.html:12
 msgid "No parent duty registered for this order."
 msgstr "No parent duty registered for this order."
 
-#: templates/pretix_parentduties/control_order_info.html:24
+#: templates/pretix_parentduties/control_order_info.html:30
 msgid "Manage"
 msgstr "Manage"
 
-#: templates/pretix_parentduties/control_order_info.html:24
+#: templates/pretix_parentduties/control_order_info.html:30
 #: templates/pretix_parentduties/presale_order_info.html:13
 msgid "Details"
 msgstr "Details"
@@ -1276,7 +1308,6 @@ msgstr ""
 "started or checkout step not live)."
 
 #: templates/pretix_parentduties/waitlist.html:21
-#| msgid "All types"
 msgid "All states"
 msgstr "All states"
 
@@ -1285,7 +1316,6 @@ msgid "Waiting for"
 msgstr "Waiting for"
 
 #: templates/pretix_parentduties/waitlist.html:32
-#| msgid "Parent duty"
 msgid "Current duty"
 msgstr "Current duty"
 
@@ -1344,7 +1374,6 @@ msgid "The parent duty has been added."
 msgstr "The parent duty has been added."
 
 #: views.py:280
-#| msgid "The parent duty has been added."
 msgid "The waitlist entry has been removed."
 msgstr "The waitlist entry has been removed."
 
@@ -1353,9 +1382,6 @@ msgid "You do not have permission to change this."
 msgstr "You do not have permission to change this."
 
 #: views.py:348
-#| msgid ""
-#| "Leave empty to offer this duty for all products that trigger the parent "
-#| "duty."
 msgid "Please choose the products that trigger the parent duty first."
 msgstr "Please choose the products that trigger the parent duty first."
 
@@ -1372,7 +1398,6 @@ msgid "You have been removed from the waitlist."
 msgstr "You have been removed from the waitlist."
 
 #: views.py:432
-#| msgid "So we can reach you on the day of the duty."
 msgid "You cannot join the waitlist for this duty."
 msgstr "You cannot join the waitlist for this duty."
 

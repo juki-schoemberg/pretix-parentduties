@@ -61,14 +61,41 @@ def item_triggers(item):
         return bool(item.event.settings.parentduties_new_items_trigger)
 
 
+def skipping_vouchers(voucher_ids):
+    """``{voucher_id: whole_order}`` for those of the given vouchers that exempt from the duty."""
+    from .models import VoucherDutyConfig
+    voucher_ids = {v for v in voucher_ids if v}
+    if not voucher_ids:
+        return {}
+    return dict(VoucherDutyConfig.objects.filter(
+        voucher_id__in=voucher_ids, skips_duty=True,
+    ).values_list("voucher_id", "whole_order"))
+
+
 def positions_trigger(event, positions):
     """True if at least one of the (cart or order) positions triggers the duty.
 
     Add-ons and bundled products only count if their own product has the switch;
-    variations inherit from their product.
+    variations inherit from their product. A voucher that exempts from the parent duty
+    either exempts the whole cart/order (``whole_order``) or only its own position.
     """
+    positions = list(positions)
     ids = triggering_item_ids(event)
-    return any(p.item_id in ids for p in positions)
+    skip = skipping_vouchers(p.voucher_id for p in positions)
+    if any(skip.values()):
+        return False
+    return any(p.item_id in ids and p.voucher_id not in skip for p in positions)
+
+
+def waiving_vouchers(order):
+    """Vouchers that exempted triggering positions of this order (for display in the backend)."""
+    positions = list(order.positions.select_related("voucher"))
+    ids = triggering_item_ids(order.event)
+    skip = skipping_vouchers(p.voucher_id for p in positions)
+    return sorted({
+        p.voucher.code for p in positions
+        if p.voucher_id in skip and (skip[p.voucher_id] or p.item_id in ids)
+    })
 
 
 def order_triggers(order):

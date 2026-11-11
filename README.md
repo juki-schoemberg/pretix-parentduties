@@ -21,6 +21,11 @@ The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
   Works in the pretix widget as well.
 - **Per product switch** “triggers the parent duty”, both on the product page
   and as an overview in the plugin. Default for new products: off.
+- **Vouchers that exempt from the parent duty:** checkbox “Exempt from the
+  parent duty” on pretix' voucher form (single and bulk creation). With
+  “Applies to the whole order” (default) the whole order is exempt – e.g. a
+  staff pass that can only be bought with a voucher, ordered together with the
+  children. Without it, only the product bought with the voucher is exempt.
 - **One duty per family:** automatic match by normalized e-mail address,
   fallback via the order code of a sibling (followed to the root). Unknown
   codes never block the checkout – they land in the review list.

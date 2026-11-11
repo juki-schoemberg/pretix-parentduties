@@ -6,7 +6,7 @@ from pretix.base.reldate import RelativeDateTimeField
 from i18nfield.forms import I18nFormField, I18nTextarea, I18nTextInput
 
 from . import conf
-from .models import DutySignup, DutySlot, ItemDutyConfig
+from .models import DutySignup, DutySlot, ItemDutyConfig, VoucherDutyConfig
 from .services import (
     CHOICE_CANNOT_HELP, CHOICE_SIBLING, CHOICE_SKIP, CHOICE_SLOT, max_duties, waitlist_active,
 )
@@ -361,3 +361,68 @@ class ParentDutySettingsForm(SettingsForm):
         data = super().clean()
         _validate_waitlist_settings(self, data)
         return data
+
+
+FIELD_SKIP_DUTY = "parentduties_skips_duty"
+FIELD_WHOLE_ORDER = "parentduties_whole_order"
+
+
+def extend_voucher_form(cls):
+    """Add the "exempt from parent duty" checkbox to pretix' voucher (bulk) form."""
+
+    class ParentDutyVoucherForm(cls):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            skips, whole = False, True
+            instance = getattr(self, "instance", None)
+            if instance is not None and instance.pk:
+                try:
+                    skips = instance.parentduty_config.skips_duty
+                    whole = instance.parentduty_config.whole_order
+                except VoucherDutyConfig.DoesNotExist:
+                    pass
+            self.fields[FIELD_SKIP_DUTY] = forms.BooleanField(
+                label=_("Exempt from the parent duty"),
+                help_text=_("Orders with this voucher do not need a parent duty, even if their products "
+                            "normally trigger it."),
+                required=False,
+                initial=skips,
+            )
+            self.fields[FIELD_WHOLE_ORDER] = forms.BooleanField(
+                label=_("Applies to the whole order"),
+                help_text=_("Checked: the whole order is exempt, including all other products – e.g. a staff "
+                            "pass bought together with the children's tickets. Unchecked: only the product "
+                            "bought with this voucher is exempt."),
+                required=False,
+                initial=whole,
+            )
+
+        def _store_skip(self, vouchers):
+            value = bool(self.cleaned_data.get(FIELD_SKIP_DUTY))
+            whole = bool(self.cleaned_data.get(FIELD_WHOLE_ORDER))
+            for v in vouchers:
+                if value:
+                    VoucherDutyConfig.objects.update_or_create(
+                        voucher=v, defaults={"skips_duty": True, "whole_order": whole},
+                    )
+                else:
+                    VoucherDutyConfig.objects.filter(voucher=v).delete()
+
+        def save(self, *args, **kwargs):
+            result = super().save(*args, **kwargs)
+            if self.instance.pk:
+                self._store_skip([self.instance])
+            return result
+
+        def post_bulk_save(self, objs):
+            super().post_bulk_save(objs)
+            if self.cleaned_data.get(FIELD_SKIP_DUTY):
+                whole = bool(self.cleaned_data.get(FIELD_WHOLE_ORDER))
+                VoucherDutyConfig.objects.bulk_create(
+                    [VoucherDutyConfig(voucher=v, skips_duty=True, whole_order=whole) for v in objs],
+                    ignore_conflicts=True,
+                )
+
+    ParentDutyVoucherForm.__name__ = cls.__name__
+    ParentDutyVoucherForm.__qualname__ = cls.__qualname__
+    return ParentDutyVoucherForm

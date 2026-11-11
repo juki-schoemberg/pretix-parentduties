@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pretix-parentduties\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-09 08:35+0000\n"
+"POT-Creation-Date: 2026-11-11 01:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: JuKi Schömberg e.V.\n"
 "Language-Team: German\n"
@@ -54,6 +54,7 @@ msgstr "Weitere Dienste"
 
 #: conf.py:20 forms.py:186
 #: templates/pretix_parentduties/confirm_content.html:5
+#: templates/pretix_parentduties/voucher_form.html:4
 msgid "Parent duty"
 msgstr "Elterndienst"
 
@@ -168,7 +169,7 @@ msgstr "Dienst"
 msgid "Please choose a duty."
 msgstr "Bitte wählt einen Dienst aus."
 
-#: forms.py:57 signals.py:231 templates/pretix_parentduties/order_duty.html:65
+#: forms.py:57 signals.py:245 templates/pretix_parentduties/order_duty.html:65
 #: templates/pretix_parentduties/settings.html:29
 #: templates/pretix_parentduties/slots.html:27
 #: templates/pretix_parentduties/waitlist.html:3
@@ -417,6 +418,33 @@ msgstr "Neue Produkte lösen Pflicht aus"
 msgid "Default for products that have not been configured explicitly."
 msgstr "Standard für Produkte, die nicht ausdrücklich eingestellt sind."
 
+#: forms.py:385 models.py:247
+msgid "Exempt from the parent duty"
+msgstr "Vom Elterndienst befreien"
+
+#: forms.py:386
+msgid ""
+"Orders with this voucher do not need a parent duty, even if their products "
+"normally trigger it."
+msgstr ""
+"Bestellungen mit diesem Gutschein brauchen keinen Elterndienst, auch wenn "
+"ihre Produkte ihn sonst auslösen."
+
+#: forms.py:392 models.py:248
+msgid "Applies to the whole order"
+msgstr "Gilt für die ganze Bestellung"
+
+#: forms.py:393
+msgid ""
+"Checked: the whole order is exempt, including all other products – e.g. a "
+"staff pass bought together with the children's tickets. Unchecked: only the "
+"product bought with this voucher is exempt."
+msgstr ""
+"Angehakt: Die ganze Bestellung ist befreit, auch alle anderen Produkte – z. "
+"B. ein Mitarbeiterausweis, der zusammen mit den Anmeldungen der Kinder "
+"bestellt wird. Nicht angehakt: Nur das mit diesem Gutschein gekaufte Produkt"
+" ist befreit."
+
 #: logentrytypes.py:9
 #, python-brace-format
 msgid "Parent duty registered ({kind}, {status})."
@@ -643,7 +671,7 @@ msgstr "über eure Anmeldung %(code)s abgedeckt"
 msgid "covered by a sibling's registration (under review)"
 msgstr "über eine Geschwister-Anmeldung abgedeckt (in Klärung)"
 
-#: placeholders.py:53 services.py:536
+#: placeholders.py:53 services.py:563
 msgid "exempt"
 msgstr "befreit"
 
@@ -711,7 +739,7 @@ msgstr "Telefon der helfenden Person"
 msgid "Status of the parent duty"
 msgstr "Status des Elterndienstes"
 
-#: placeholders.py:99 services.py:534
+#: placeholders.py:99 services.py:561
 msgid "committed"
 msgstr "zugesagt"
 
@@ -786,7 +814,7 @@ msgstr ""
 "Bis bald!\n"
 "{event}"
 
-#: reports.py:19 signals.py:55 signals.py:222 signals.py:245
+#: reports.py:19 signals.py:55 signals.py:236 signals.py:259
 #: templates/pretix_parentduties/base.html:3
 #: templates/pretix_parentduties/base.html:5
 #: templates/pretix_parentduties/control_order_info.html:4
@@ -830,19 +858,19 @@ msgstr "Familien-Bestellcode"
 msgid "Number of duties"
 msgstr "Anzahl Dienste"
 
-#: services.py:530
+#: services.py:557
 msgid "under review"
 msgstr "in Klärung"
 
-#: services.py:532
+#: services.py:559
 msgid "canceled"
 msgstr "storniert"
 
-#: services.py:535
+#: services.py:562
 msgid "covered by sibling"
 msgstr "über Geschwister abgedeckt"
 
-#: services.py:537
+#: services.py:564
 msgid "cannot help"
 msgstr "kann nicht"
 
@@ -863,25 +891,25 @@ msgstr "Elterndienst überbucht"
 msgid "Order {order.code}: the chosen parent duty was already full"
 msgstr "Bestellung {order.code}: der gewählte Elterndienst war schon voll"
 
-#: signals.py:227 templates/pretix_parentduties/slots.html:3
+#: signals.py:241 templates/pretix_parentduties/slots.html:3
 msgid "Duty slots"
 msgstr "Dienst-Slots"
 
-#: signals.py:229 templates/pretix_parentduties/signups.html:4
+#: signals.py:243 templates/pretix_parentduties/signups.html:4
 msgid "Signups"
 msgstr "Zusagen"
 
-#: signals.py:233 templates/pretix_parentduties/items.html:3
+#: signals.py:247 templates/pretix_parentduties/items.html:3
 #: templates/pretix_parentduties/settings.html:37
 msgid "Products"
 msgstr "Produkte"
 
-#: signals.py:325
+#: signals.py:342
 msgctxt "shredder"
 msgid "Parent duty details"
 msgstr "Elterndienst-Angaben"
 
-#: signals.py:327
+#: signals.py:344
 msgid ""
 "This will remove helper names, phone numbers and notes of parent duties."
 msgstr ""
@@ -980,16 +1008,21 @@ msgstr "Wir verpflichten uns, den gewählten Dienst zu übernehmen."
 msgid "additional"
 msgstr "zusätzlich"
 
-#: templates/pretix_parentduties/control_order_info.html:21
+#: templates/pretix_parentduties/control_order_info.html:22
+#, python-format
+msgid "No parent duty required: exempted by voucher %(codes)s."
+msgstr "Kein Elterndienst nötig: befreit durch Gutschein %(codes)s."
+
+#: templates/pretix_parentduties/control_order_info.html:27
 #: templates/pretix_parentduties/order_duty.html:12
 msgid "No parent duty registered for this order."
 msgstr "Für diese Bestellung ist kein Elterndienst eingetragen."
 
-#: templates/pretix_parentduties/control_order_info.html:24
+#: templates/pretix_parentduties/control_order_info.html:30
 msgid "Manage"
 msgstr "Verwalten"
 
-#: templates/pretix_parentduties/control_order_info.html:24
+#: templates/pretix_parentduties/control_order_info.html:30
 #: templates/pretix_parentduties/presale_order_info.html:13
 msgid "Details"
 msgstr "Details"

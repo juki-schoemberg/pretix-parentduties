@@ -1,0 +1,7 @@
+{% load i18n %}
+{% load bootstrap3 %}
+<fieldset>
+    <legend>{% trans "Parent duty" %}</legend>
+    {% bootstrap_field form.parentduties_skips_duty layout="control" %}
+    {% bootstrap_field form.parentduties_whole_order layout="control" %}
+</fieldset>
