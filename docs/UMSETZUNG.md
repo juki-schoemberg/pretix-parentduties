@@ -1,6 +1,6 @@
 # Umsetzungsstand
 
-Stand: 11.11.2026, Version 0.4.0, getestet gegen pretix 2026.9.0 (Python 3.13).
+Stand: 11.11.2026, Version 0.5.0, getestet gegen pretix 2026.9.0 (Python 3.13).
 
 ## Fertig (Ausbaustufe 1 / MVP)
 
@@ -75,6 +75,25 @@ Zusagen in der REST-API der Bestellung (`plugin_data`).
   Erkennung per E-Mail gibt es für Gutschein-Befreiungen bewusst nicht. Wird die befreite
   Bestellung storniert, gehen die daran hängenden Bestellungen in die Klärung; fällt der
   Gutschein durch eine Bestelländerung weg, geht die Befreiung selbst in die Klärung.
+
+## Kategorien und Reihenfolge
+
+- Statt des freien Textfelds „Kategorie“ (`tag`) gibt es eigene Kategorien (Name, Beschreibung,
+  Reihenfolge) unter Elterndienste → Kategorien. Bestehende Textkategorien werden bei der
+  Migration automatisch zu Kategorien (pro Veranstaltung, Reihenfolge nach erstem Auftreten).
+- Reihenfolge im Backend wie bei pretix-Produkten: Drag & Drop (auch in eine andere Kategorie)
+  oder Pfeil-Buttons (per Doppelklick auf den Griff einblendbar). Die Slot-Liste ist nach
+  Kategorien gruppiert; neue Dienste und Dienste mit geänderter Kategorie landen am Ende ihrer
+  Kategorie. Kategorien selbst werden auf ihrer eigenen Seite sortiert.
+- Der Checkout zeigt die Dienste genau in dieser Reihenfolge, je Kategorie ein Abschnitt mit
+  Überschrift und Beschreibung; Dienste ohne Kategorie stehen am Ende unter „Weitere Dienste“.
+  Leere Kategorien werden ausgeblendet.
+- Darstellung im Stil der pretix-Produktliste: Name fett, Beschreibung normal, „noch X Plätze frei“
+  klein darunter, Datum mit Wochentag und Uhrzeit in eigener Spalte, „Auswählen“-Button rechts,
+  volle Dienste als „Ausgebucht“ (mit Warteliste-Häkchen, falls aktiv).
+- pretix' Content-Security-Policy blockiert Inline-Styles; alle Styles liegen deshalb in
+  `static/pretix_parentduties/presale.css` und `control.css`.
+- API: `parentduty_categories/` neu, bei Slots ersetzt `category` das Feld `tag`.
 
 ## Bewusste Abweichungen vom Konzept
 

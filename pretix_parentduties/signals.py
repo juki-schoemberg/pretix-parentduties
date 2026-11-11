@@ -18,12 +18,13 @@ from pretix.base.signals import (
     register_notification_types, validate_order,
 )
 from pretix.control.signals import (
-    event_dashboard_widgets, item_forms, nav_event, nav_event_settings,
+    event_dashboard_widgets, html_head as control_html_head, item_forms, nav_event, nav_event_settings,
     order_info as control_order_info, voucher_form_class, voucher_form_html,
 )
 from pretix.helpers.json import CustomJSONEncoder
 from pretix.presale.signals import (
-    checkout_confirm_page_content, checkout_flow_steps, order_info as presale_order_info,
+    checkout_confirm_page_content, checkout_flow_steps, html_head as presale_html_head,
+    order_info as presale_order_info,
     order_meta_from_request,
 )
 
@@ -57,6 +58,28 @@ def register_permissions(sender, **kwargs):
         options=OPTS_READ_WRITE,
         help_text=_("Manage duty slots and the duties families have signed up for."),
     )]
+
+
+# ------------------------------------------------------------- stylesheets
+# pretix' Content-Security-Policy only allows stylesheets from the static domain.
+
+def _stylesheet(name):
+    from django.templatetags.static import static
+    from django.utils.html import format_html
+    return format_html('<link rel="stylesheet" type="text/css" href="{}">', static(f"pretix_parentduties/{name}"))
+
+
+@receiver(presale_html_head, dispatch_uid=f"{DUID}_presale_css")
+def presale_css(sender, request=None, **kwargs):
+    return _stylesheet("presale.css")
+
+
+@receiver(control_html_head, dispatch_uid=f"{DUID}_control_css")
+def control_css(sender, request=None, **kwargs):
+    url = resolve(request.path_info) if request is not None else None
+    if url is None or url.namespace != "plugins:pretix_parentduties":
+        return ""
+    return _stylesheet("control.css")
 
 
 # --------------------------------------------------------------- checkout
@@ -240,6 +263,8 @@ def add_nav_entry(sender, request, **kwargs):
         "children": [
             {"label": _("Duty slots"), "url": _url(request, "slots"),
              "active": active and url.url_name.startswith("slot")},
+            {"label": _("Categories"), "url": _url(request, "categories"),
+             "active": active and url.url_name.startswith("categor")},
             {"label": _("Signups"), "url": _url(request, "signups"),
              "active": active and url.url_name.startswith("signup")},
             {"label": _("Waitlist"), "url": _url(request, "waitlist"),

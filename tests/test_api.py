@@ -52,9 +52,9 @@ def test_reader_cannot_write(event, reader):
     assert r.status_code == 403
 
 
-def test_create_update_delete_slot(event, item, writer):
+def test_create_update_delete_slot(event, item, category_setup, writer):
     r = writer.post(url(event, "parentduty_slots/"), {
-        "name": {"de": "Aufbau Freitag"}, "tag": "Aufbau", "capacity": 4, "limit_items": [item.pk],
+        "name": {"de": "Aufbau Freitag"}, "category": category_setup.pk, "capacity": 4, "limit_items": [item.pk],
         "date": "2027-07-09", "time_from": "16:00", "time_to": "18:00",
     }, format="json")
     assert r.status_code == 201, r.content

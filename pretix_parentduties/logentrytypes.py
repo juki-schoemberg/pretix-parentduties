@@ -30,6 +30,11 @@ class ParentDutyOrderLogEntryType(OrderLogEntryType):
     "pretix_parentduties.slot.changed": _("Parent duty slot “{name}” changed."),
     "pretix_parentduties.slot.deleted": _("Parent duty slot “{name}” deleted."),
     "pretix_parentduties.items.changed": _("Products triggering the parent duty changed."),
+    "pretix_parentduties.slots.reordered": _("Order of the parent duty slots changed."),
+    "pretix_parentduties.category.created": _("Parent duty category “{name}” created."),
+    "pretix_parentduties.category.changed": _("Parent duty category “{name}” changed."),
+    "pretix_parentduties.category.deleted": _("Parent duty category “{name}” deleted."),
+    "pretix_parentduties.categories.reordered": _("Order of the parent duty categories changed."),
     "pretix_parentduties.reminder.created": _("Reminder e-mail for parent duties created ({days_before} days before)."),
 })
 class ParentDutyEventLogEntryType(EventLogEntryType):

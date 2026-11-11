@@ -29,8 +29,31 @@ class DutySlotQuerySet(models.QuerySet):
         )
 
 
+class DutyCategory(models.Model):
+    """Group of duty slots, e.g. "Cake" or "Set-up". Defines the order of the groups."""
+
+    event = models.ForeignKey(
+        "pretixbase.Event", on_delete=models.CASCADE, related_name="parentduty_categories",
+    )
+    name = I18nCharField(max_length=190, verbose_name=_("Name"))
+    description = I18nTextField(
+        null=True, blank=True, verbose_name=_("Description"),
+        help_text=_("Shown above the duties of this category in the checkout."),
+    )
+    position = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ("position", "id")
+
+    def __str__(self):
+        return str(self.name)
+
+
 class DutySlot(models.Model):
-    """A concrete duty that families can sign up for, e.g. "Cake Monday"."""
+    """A concrete duty that families can sign up for, e.g. "Cake Monday".
+
+    Order: by category (category position), then by the slot's own position.
+    """
 
     event = models.ForeignKey(
         "pretixbase.Event", on_delete=models.CASCADE, related_name="parentduty_slots",
@@ -44,9 +67,9 @@ class DutySlot(models.Model):
         null=True, blank=True, verbose_name=_("Description"),
         help_text=_("Details such as meeting point or what to bring."),
     )
-    tag = models.CharField(
-        max_length=190, blank=True, verbose_name=_("Category"),
-        help_text=_("Free grouping such as “Set-up” or “Cake”, used for filters and exports."),
+    category = models.ForeignKey(
+        DutyCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="slots",
+        verbose_name=_("Category"),
     )
     date = models.DateField(null=True, blank=True, verbose_name=_("Date"))
     time_from = models.TimeField(null=True, blank=True, verbose_name=_("Start time"))
@@ -56,7 +79,7 @@ class DutySlot(models.Model):
         help_text=_("Leave empty for unlimited."),
     )
     active = models.BooleanField(default=True, verbose_name=_("Active"))
-    position = models.IntegerField(default=0, verbose_name=_("Position"))
+    position = models.IntegerField(default=0)
     limit_items = models.ManyToManyField(
         "pretixbase.Item", blank=True, related_name="+",
         verbose_name=_("Only offer for these products"),
@@ -66,10 +89,21 @@ class DutySlot(models.Model):
     objects = DutySlotQuerySet.as_manager()
 
     class Meta:
-        ordering = ("position", "date", "time_from", "id")
+        ordering = ("position", "id")
 
     def __str__(self):
         return str(self.name)
+
+    @property
+    def sort_key(self):
+        """Display order: categories in their order, uncategorized last, then the slot position."""
+        cat = self.category
+        return (cat is None, cat.position if cat else 0, cat.pk if cat else 0, self.position, self.pk or 0)
+
+    @property
+    def tag(self):
+        """Category name as plain text (exports, placeholders)."""
+        return str(self.category.name) if self.category_id and self.category else ""
 
     @property
     def time_display(self):

@@ -10,6 +10,17 @@ The plugin must be active for the event, otherwise the endpoints answer `404`.
 | View (`event.parentduties:read`) | all `GET` requests |
 | View and change (`event.parentduties:write`) | creating, changing and deleting slots, moving signups |
 
+## Categories – `parentduty_categories/`
+
+`GET`, `POST`, `GET <id>/`, `PATCH <id>/`, `PUT <id>/`, `DELETE <id>/`
+
+```json
+{"id": 2, "name": {"de": "Kuchen"}, "description": null, "position": 1}
+```
+
+- `position` defines the order of the categories in the checkout and backend.
+- Deleting a category keeps its slots; they become uncategorized.
+
 ## Duty slots – `parentduty_slots/`
 
 `GET`, `POST`, `GET <id>/`, `PATCH <id>/`, `PUT <id>/`, `DELETE <id>/`
@@ -19,7 +30,7 @@ The plugin must be active for the event, otherwise the endpoints answer `404`.
   "id": 1,
   "name": {"de": "Kuchen Montag", "en": "Cake Monday"},
   "description": {"de": "Bitte bis 13:30 an der Küche abgeben"},
-  "tag": "Kuchen",
+  "category": 2,
   "subevent": null,
   "date": "2027-07-12",
   "time_from": "14:00:00",
@@ -35,7 +46,10 @@ The plugin must be active for the event, otherwise the endpoints answer `404`.
 ```
 
 - `occupied`, `free` (`null` = unlimited) and `waiting` are read-only.
-- Filters: `active`, `tag`, `date`, `subevent`.
+- Order: by category (`position` of the category, uncategorized last), then by the slot's own
+  position. The list endpoint returns slots in this order.
+- Filters: `active`, `category`, `date`, `subevent`.
+- Changed in 0.5.0: the free-text field `tag` was replaced by `category` (category ID).
 - A slot with signups cannot be deleted (`400`); set `"active": false` instead.
 - Increasing the capacity or reactivating a slot hands free spots to the waitlist.
 

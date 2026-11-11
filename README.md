@@ -12,8 +12,12 @@ The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
 ## Features
 
 - **Duty slots per event** with name, description, category, date, time,
-  capacity (empty = unlimited), sort position and optional product limit.
-  One-click *duplicate*, so five cake days are set up in a minute.
+  capacity (empty = unlimited) and optional product limit. One-click
+  *duplicate*, so five cake days are set up in a minute.
+- **Categories and order:** categories with their own order; duties are sorted
+  by drag & drop (also into another category) or arrow buttons, just like
+  products in pretix. The checkout shows them in exactly this order, grouped
+  by category, styled like pretix' product list.
 - **Checkout step** after the questions and before payment. Full slots are
   visible but disabled. Optional: several duties per family, “we cannot help”
   (with or without reason), “decide later”, helper name / phone (off,

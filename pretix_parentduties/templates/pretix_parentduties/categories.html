@@ -1,0 +1,54 @@
+{% extends "pretix_parentduties/base.html" %}
+{% load i18n %}
+{% block subtitle %} <small>{% trans "Categories" %}</small>{% endblock %}
+{% block inner %}
+    <p>
+        {% blocktrans trimmed %}
+            Categories group the duties in the checkout, e.g. “Set-up”, “Cake” or “Tear-down”. The order here is
+            the order in the checkout; duties without a category come last.
+        {% endblocktrans %}
+    </p>
+    {% if can_write %}
+        <p>
+            <a href="{% url "plugins:pretix_parentduties:category.add" organizer=request.organizer.slug event=request.event.slug %}" class="btn btn-primary">
+                <span class="fa fa-plus"></span> {% trans "Create a new category" %}
+            </a>
+        </p>
+    {% endif %}
+    {% if categories %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="table table-condensed table-hover">
+                    <thead>
+                    <tr>
+                        <th>{% trans "Category" %}</th>
+                        <th>{% trans "Duties" %}</th>
+                        <th class="action-col-2"><span class="sr-only">{% trans "Actions" %}</span></th>
+                    </tr>
+                    </thead>
+                    <tbody {% if can_write %}data-dnd-url="{% url "plugins:pretix_parentduties:categories.reorder" organizer=request.organizer.slug event=request.event.slug %}"{% endif %}>
+                    {% for c in categories %}
+                        <tr data-dnd-id="{{ c.pk }}">
+                            <td><strong>{% if can_write %}<a href="{% url "plugins:pretix_parentduties:category.edit" organizer=request.organizer.slug event=request.event.slug pk=c.pk %}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}</strong></td>
+                            <td>{{ c.slot_count }}</td>
+                            <td class="text-right flip parentduties-actions">
+                                {% if can_write %}
+                                    <button title="{% trans "Move up" %}" formaction="{% url "plugins:pretix_parentduties:category.move" organizer=request.organizer.slug event=request.event.slug pk=c.pk direction="up" %}" class="btn btn-default btn-sm sortable-up"{% if forloop.first %} disabled{% endif %}><i class="fa fa-arrow-up"></i></button>
+                                    <button title="{% trans "Move down" %}" formaction="{% url "plugins:pretix_parentduties:category.move" organizer=request.organizer.slug event=request.event.slug pk=c.pk direction="down" %}" class="btn btn-default btn-sm sortable-down"{% if forloop.last %} disabled{% endif %}><i class="fa fa-arrow-down"></i></button>
+                                    <span class="dnd-container" title="{% trans "Click and drag this button to reorder. Double click to show buttons for reordering." %}"></span>
+                                    <button title="{% trans "Delete" %}" formaction="{% url "plugins:pretix_parentduties:category.delete" organizer=request.organizer.slug event=request.event.slug pk=c.pk %}" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    {% else %}
+        <div class="empty-collection">
+            <p>{% trans "You haven't created any categories yet." %}</p>
+        </div>
+    {% endif %}
+{% endblock %}

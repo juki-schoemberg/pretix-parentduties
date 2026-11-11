@@ -108,8 +108,10 @@ def order_triggers(order):
 
 
 def available_slots(event, item_ids=None, subevent_ids=None):
-    """Active slots offered for a cart with the given product IDs, with occupancy."""
-    qs = DutySlot.objects.filter(event=event, active=True).with_occupancy().prefetch_related("limit_items")
+    """Active slots offered for a cart with the given product IDs, with occupancy, in display order."""
+    qs = DutySlot.objects.filter(event=event, active=True).with_occupancy().select_related(
+        "category",
+    ).prefetch_related("limit_items")
     result = []
     for slot in qs:
         limits = {i.pk for i in slot.limit_items.all()}
@@ -118,7 +120,52 @@ def available_slots(event, item_ids=None, subevent_ids=None):
         if slot.subevent_id and subevent_ids is not None and slot.subevent_id not in subevent_ids:
             continue
         result.append(slot)
-    return result
+    return sorted(result, key=lambda s: s.sort_key)
+
+
+def ordered_slots(qs):
+    """Slots of a queryset in display order (category order, then slot position)."""
+    return sorted(qs.select_related("category"), key=lambda s: s.sort_key)
+
+
+def group_by_category(slots):
+    """``[(category or None, [slots])]`` in display order; uncategorized slots last."""
+    groups = []
+    for slot in sorted(slots, key=lambda s: s.sort_key):
+        if not groups or groups[-1][0] != slot.category:
+            groups.append((slot.category, []))
+        groups[-1][1].append(slot)
+    return groups
+
+
+def reorder(objects, ids, **extra):
+    """Set ``position`` (and e.g. ``category``) from a list of IDs; returns the changed objects."""
+    by_id = {str(o.pk): o for o in objects}
+    changed = []
+    for pos, oid in enumerate(ids):
+        obj = by_id[str(oid)]
+        fields = []
+        if obj.position != pos:
+            obj.position = pos
+            fields.append("position")
+        for k, v in extra.items():
+            if getattr(obj, k) != v:
+                setattr(obj, k, v)
+                fields.append(k)
+        if fields:
+            obj.save(update_fields=fields)
+            changed.append(obj)
+    return changed
+
+
+def move(obj, siblings, up):
+    """Move ``obj`` one step up/down among ``siblings`` (including itself) and renumber them."""
+    siblings = list(siblings)
+    idx = next(i for i, o in enumerate(siblings) if o.pk == obj.pk)
+    other = idx - 1 if up else idx + 1
+    if 0 <= other < len(siblings):
+        siblings[idx], siblings[other] = siblings[other], siblings[idx]
+    reorder(siblings, [o.pk for o in siblings])
 
 
 # --------------------------------------------------------- family detection
@@ -555,8 +602,17 @@ def admin_cancel(signup, user=None):
 # ------------------------------------------------------------------ copying
 
 def copy_slots(source_event, target_event, item_map):
+    from .models import DutyCategory
+    category_map = {}
+    for cat in DutyCategory.objects.filter(event=source_event):
+        old = cat.pk
+        cat.pk = cat.id = None
+        cat.event = target_event
+        cat.save()
+        category_map[old] = cat
     for slot in DutySlot.objects.filter(event=source_event).prefetch_related("limit_items"):
         items = list(slot.limit_items.all())
+        slot.category = category_map.get(slot.category_id)
         slot.pk = None
         slot.id = None
         slot.event = target_event

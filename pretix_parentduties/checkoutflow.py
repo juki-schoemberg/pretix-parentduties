@@ -1,6 +1,3 @@
-import datetime
-from collections import OrderedDict
-
 from django.contrib import messages
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
@@ -13,7 +10,7 @@ from .forms import DutyChoiceForm
 from .models import DutySlot
 from .services import (
     CHOICE_CANNOT_HELP, CHOICE_FAMILY, CHOICE_SIBLING, CHOICE_SLOT, SESSION_KEY, available_slots, find_family_signup,
-    is_live, positions_trigger,
+    group_by_category, is_live, positions_trigger,
 )
 
 
@@ -140,15 +137,14 @@ class ParentDutyStep(CartMixin, TemplateFlowStep):
         waitlisted = {str(v) for v in waitlisted or []}
         ctx["waitlist_offered"] = self.form.waitlist_offered
 
-        groups = OrderedDict()
-        for slot in sorted(self.slots, key=slot_sort_key):
+        for slot in self.slots:
             slot.checked = str(slot.pk) in selected
             slot.free = slot.free_count()
             slot.full = slot.is_full()
             slot.waitlisted = str(slot.pk) in waitlisted
-            key = slot.date_display or str(_("Other duties"))
-            groups.setdefault(key, []).append(slot)
-        ctx["slot_groups"] = groups
+        # [(category or None, slots)] in the order defined in the backend
+        ctx["slot_groups"] = group_by_category(self.slots)
+        ctx["has_categories"] = any(cat is not None for cat, _slots in ctx["slot_groups"])
         offered = {v for v, _label in self.form.alternatives}
         ctx["offer_sibling"] = CHOICE_SIBLING in offered
         ctx["offer_cannot_help"] = CHOICE_CANNOT_HELP in offered
@@ -158,18 +154,13 @@ class ParentDutyStep(CartMixin, TemplateFlowStep):
         return ctx
 
 
-def slot_sort_key(s):
-    return (
-        s.date is None, s.date or datetime.date.min,
-        s.time_from is None, s.time_from or datetime.time.min,
-        s.position, s.pk,
-    )
-
-
 def summary_for_session(event, data):
     """Data for the confirmation page summary."""
     choice = data.get("choice")
     slots = []
     if choice == CHOICE_SLOT:
-        slots = list(DutySlot.objects.filter(event=event, pk__in=data.get("slots") or []))
+        slots = sorted(
+            DutySlot.objects.filter(event=event, pk__in=data.get("slots") or []).select_related("category"),
+            key=lambda s: s.sort_key,
+        )
     return {"choice": choice, "slots": slots, "data": data}

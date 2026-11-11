@@ -1,0 +1,92 @@
+{% load i18n %}
+{% load rich_text %}
+{% comment %}
+    Duty slots grouped by category, built like pretix' product list on the shop front page.
+    Parameters: groups [(category, slots)], input_type ("radio"/"checkbox"), input_name, id_prefix,
+    show_waitlist, waitlist_name, current_slot_id (optional), show_uncategorized_heading.
+    Each slot carries: checked, free, full, waitlisted.
+{% endcomment %}
+<div class="parentduties-slots">
+    {% for category, slots in groups %}
+        <section class="item-category" aria-labelledby="{{ id_prefix }}category-{{ category.pk|default:"none" }}">
+            {% if category %}
+                <h3 class="h3" id="{{ id_prefix }}category-{{ category.pk }}">{{ category.name }}</h3>
+                {% if category.description %}
+                    <div class="parentduties-category-description">{{ category.description|rich_text }}</div>
+                {% endif %}
+            {% elif show_uncategorized_heading %}
+                <h3 class="h3" id="{{ id_prefix }}category-none">{% trans "Other duties" %}</h3>
+            {% else %}
+                <h3 class="h3 sr-only" id="{{ id_prefix }}category-none">{% trans "Duties" %}</h3>
+            {% endif %}
+            {% for slot in slots %}
+                <article class="row product-row simple" id="{{ id_prefix }}slot-{{ slot.pk }}"
+                         aria-labelledby="{{ id_prefix }}slot-{{ slot.pk }}-legend">
+                    <div class="col-md-8 col-sm-6 col-xs-12">
+                        <div class="product-description">
+                            <h4 class="h4" id="{{ id_prefix }}slot-{{ slot.pk }}-legend">{{ slot.name }}</h4>
+                            {% if slot.description %}
+                                <div class="parentduties-description" id="{{ id_prefix }}slot-{{ slot.pk }}-description">
+                                    {{ slot.description|rich_text }}
+                                </div>
+                            {% endif %}
+                            {% if not slot.full and slot.free is not None %}
+                                <p class="parentduties-free"><small>
+                                    {% blocktrans trimmed count free=slot.free %}
+                                        {{ free }} spot left
+                                    {% plural %}
+                                        {{ free }} spots left
+                                    {% endblocktrans %}
+                                </small></p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-sm-3 col-xs-6 parentduties-when">
+                        {% if slot.date %}<span class="parentduties-date">{{ slot.date|date:"D" }}, {{ slot.date_display }}</span>{% endif %}
+                        {% if slot.time_display %}{{ slot.time_display }}{% endif %}
+                    </div>
+                    {% if current_slot_id and slot.pk == current_slot_id %}
+                        <div class="col-md-2 col-sm-3 col-xs-6 availability-box available">
+                            <label class="btn btn-default btn-checkbox">
+                                <input type="{{ input_type }}" name="{{ input_name }}" value="{{ slot.pk }}"
+                                       {% if slot.checked %}checked{% endif %}
+                                       aria-labelledby="{{ id_prefix }}slot-{{ slot.pk }}-legend">
+                                {% trans "Your duty" %}
+                            </label>
+                        </div>
+                    {% elif slot.full %}
+                        <div class="col-md-2 col-sm-3 col-xs-6 availability-box gone">
+                            <strong>{% trans "FULLY BOOKED" %}</strong>
+                            {% if show_waitlist %}
+                                <label class="parentduties-waitlist">
+                                    <input type="checkbox" name="{{ waitlist_name }}" value="{{ slot.pk }}"
+                                           {% if slot.waitlisted %}checked{% endif %}
+                                           aria-describedby="{{ id_prefix }}waitlist-help">
+                                    {% trans "Waitlist" %}
+                                </label>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="col-md-2 col-sm-3 col-xs-6 availability-box available">
+                            <label class="btn btn-default btn-checkbox">
+                                <input type="{{ input_type }}" name="{{ input_name }}" value="{{ slot.pk }}"
+                                       {% if slot.checked %}checked{% endif %}
+                                       aria-labelledby="{{ id_prefix }}slot-{{ slot.pk }}-legend"
+                                       {% if slot.description %}aria-describedby="{{ id_prefix }}slot-{{ slot.pk }}-description"{% endif %}>
+                                {% trans "Select" context "checkbox" %}
+                            </label>
+                        </div>
+                    {% endif %}
+                    <div class="clearfix"></div>
+                </article>
+            {% endfor %}
+        </section>
+    {% empty %}
+        <div class="alert alert-info">{% trans "There are currently no duties available." %}</div>
+    {% endfor %}
+    {% if show_waitlist %}
+        <p class="help-block" id="{{ id_prefix }}waitlist-help">
+            {% trans "Fully booked duty? Tick “Waitlist” – you keep the duty you choose now, and we will let you know when a spot becomes free." %}
+        </p>
+    {% endif %}
+</div>
