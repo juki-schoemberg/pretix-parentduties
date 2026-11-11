@@ -100,6 +100,23 @@ included. Update them with `django-admin makemessages -l de -l en` inside
 `pretix_parentduties/`, then `django-admin compilemessages`. The compiled
 `.mo` files are committed so `pip install git+…` works without a build step.
 
+## Release process
+
+Releases are published to PyPI via a GitHub Actions workflow
+(`.github/workflows/release.yml`) using
+[PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC,
+no API token stored in the repo). To cut a release:
+
+1. Bump the version in `pyproject.toml` **and** `pretix_parentduties/__init__.py`
+   and commit.
+2. Create and publish a GitHub Release (tag it, e.g. `v0.4.0`). Publishing
+   the release triggers the workflow, which compiles the translations, builds
+   the sdist/wheel and uploads them to PyPI via the `pypi` environment.
+
+The trusted publisher on PyPI is configured for this exact repository
+(`juki-schoemberg/pretix-parentduties`), workflow (`release.yml`), and
+environment (`pypi`) -- publishing only succeeds from that combination.
+
 ## License
 
 Apache-2.0, © JuKi Schömberg e.V.
