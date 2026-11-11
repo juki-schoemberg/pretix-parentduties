@@ -1,6 +1,6 @@
 # Umsetzungsstand
 
-Stand: 09.11.2026, Version 0.3.0, getestet gegen pretix 2026.9.0 (Python 3.13).
+Stand: 11.11.2026, Version 0.4.0, getestet gegen pretix 2026.9.0 (Python 3.13).
 
 ## Fertig (Ausbaustufe 1 / MVP)
 
@@ -56,6 +56,25 @@ Zusagen in der REST-API der Bestellung (`plugin_data`).
   `{parent_duty_waitlist_slot}`), Versand in der Sprache der Bestellung, alles im Bestell-Log.
 - Backend: eigener Menüpunkt „Warteliste“ mit Filter und Entfernen, Spalte in der Slot-Liste,
   Zähler im Dashboard-Widget, Platzhalter `{parent_duty_waitlist}`.
+
+## Befreiung per Gutschein
+
+- Im Gutschein-Formular von pretix (Einzel- und Massenanlage) gibt es das Häkchen
+  „Vom Elterndienst befreien“ und darunter „Gilt für die ganze Bestellung“ (Standard: an).
+- Ganze Bestellung: Enthält der Warenkorb bzw. die Bestellung eine Position mit diesem Gutschein,
+  braucht die ganze Bestellung keinen Elterndienst. Gedacht für den Mitarbeiterausweis, der nur
+  per Gutschein bestellbar ist und zusammen mit den Kindern bestellt wird – der Ausweis selbst
+  muss dafür keine Pflicht auslösen.
+- Ohne „ganze Bestellung“ ist nur die mit dem Gutschein gekaufte Position befreit; weitere Kinder
+  im selben Warenkorb lösen die Pflicht weiterhin aus.
+- Folge: kein Checkout-Schritt. Die Bestellung bekommt eine Zusage „befreit“ mit Verweis auf den
+  Gutschein (Backend, Platzhalter und API zeigen „befreit (Gutschein …)“). Bei „ganze Bestellung“
+  passiert das auch, wenn nur der Mitarbeiterausweis bestellt wurde.
+- Spätere Bestellungen der Familie: Wer im Checkout „Geschwisterkind ist schon angemeldet“ wählt
+  und den Bestellcode der befreiten Bestellung angibt, ist ebenfalls abgedeckt. Eine automatische
+  Erkennung per E-Mail gibt es für Gutschein-Befreiungen bewusst nicht. Wird die befreite
+  Bestellung storniert, gehen die daran hängenden Bestellungen in die Klärung; fällt der
+  Gutschein durch eine Bestelländerung weg, geht die Befreiung selbst in die Klärung.
 
 ## Bewusste Abweichungen vom Konzept
 

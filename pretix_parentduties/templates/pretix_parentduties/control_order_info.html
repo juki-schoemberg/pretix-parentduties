@@ -17,6 +17,12 @@
                     </li>
                 {% endfor %}
             </ul>
+        {% elif waived_by %}
+            <p class="text-muted">
+                {% blocktrans trimmed with codes=waived_by|join:", " %}
+                    No parent duty required: exempted by voucher {{ codes }}.
+                {% endblocktrans %}
+            </p>
         {% else %}
             <p class="text-muted">{% trans "No parent duty registered for this order." %}</p>
         {% endif %}

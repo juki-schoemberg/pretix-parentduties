@@ -55,6 +55,7 @@ The plugin must be active for the event, otherwise the endpoints answer `404`.
   "covered_by_order": null,
   "family_code": "ABC12",
   "sibling_code": "",
+  "voucher": null,
   "helper_name": "Anna Muster",
   "helper_phone": "0151 23456789",
   "note": "",
@@ -63,6 +64,7 @@ The plugin must be active for the event, otherwise the endpoints answer `404`.
 ```
 
 - `kind`: `slot`, `sibling`, `exempt`, `cannot_help`; `status`: `active`, `needs_review`, `canceled`.
+- `voucher`: code of the voucher that exempted the order (only on `exempt` signups created that way).
 - Filters: `status`, `kind`, `slot`, `primary`, `order` (order code, case-insensitive).
 - `POST <id>/move/` with `{"slot": 3}` moves the signup like the backend does
   (capacity may be exceeded deliberately) and returns the updated signup.

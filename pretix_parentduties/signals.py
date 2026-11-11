@@ -19,7 +19,7 @@ from pretix.base.signals import (
 )
 from pretix.control.signals import (
     event_dashboard_widgets, item_forms, nav_event, nav_event_settings,
-    order_info as control_order_info,
+    order_info as control_order_info, voucher_form_class, voucher_form_html,
 )
 from pretix.helpers.json import CustomJSONEncoder
 from pretix.presale.signals import (
@@ -190,6 +190,20 @@ def add_item_form(sender, request, item, **kwargs):
     )
 
 
+@receiver(voucher_form_class, dispatch_uid=f"{DUID}_voucher_form_class")
+def voucher_form(sender, cls, **kwargs):
+    from .forms import extend_voucher_form
+    return extend_voucher_form(cls)
+
+
+@receiver(voucher_form_html, dispatch_uid=f"{DUID}_voucher_form_html")
+def voucher_form_field(sender, form, **kwargs):
+    from .forms import FIELD_SKIP_DUTY
+    if FIELD_SKIP_DUTY not in form.fields:
+        return ""
+    return get_template("pretix_parentduties/voucher_form.html").render({"form": form})
+
+
 @receiver(item_copy_data, dispatch_uid=f"{DUID}_item_copy")
 def copy_item_config(sender, source, target, **kwargs):
     try:
@@ -259,7 +273,8 @@ def dashboard_widget(sender, subevent=None, lazy=False, **kwargs):
 # ---------------------------------------------------------------- orders
 
 def _order_signups(order):
-    return list(order.parentduty_signups.select_related("slot", "covered_by__order").order_by("-primary", "id"))
+    return list(order.parentduty_signups.select_related("slot", "covered_by__order", "voucher").order_by(
+        "-primary", "id"))
 
 
 @receiver(control_order_info, dispatch_uid=f"{DUID}_control_order_info")
@@ -269,6 +284,8 @@ def control_order_box(sender, order, request, **kwargs):
     signups = _order_signups(order)
     if not signups and not is_live(sender):
         return ""
+    from .services import waiving_vouchers
+    waived_by = waiving_vouchers(order) if not signups else []
     from .placeholders import duty_text
     from .services import status_label
     for s in signups:
@@ -278,6 +295,7 @@ def control_order_box(sender, order, request, **kwargs):
         "signups": signups,
         "order": order,
         "signups_url": _url(request, "signups") + f"?order={order.code}",
+        "waived_by": waived_by,
         "can_write": has_perm(request, PERM_WRITE),
     }, request=request)
 

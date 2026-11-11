@@ -50,6 +50,8 @@ def duty_text(signup):
             return _("covered by your registration %(code)s") % {"code": code}
         return _("covered by a sibling's registration (under review)")
     if signup.kind == DutySignup.KIND_EXEMPT:
+        if signup.voucher_id and signup.voucher:
+            return _("exempt (voucher %(code)s)") % {"code": signup.voucher.code}
         return _("exempt")
     if signup.kind == DutySignup.KIND_CANNOT_HELP:
         return _("no duty")
