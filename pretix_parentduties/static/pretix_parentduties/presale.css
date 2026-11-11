@@ -58,3 +58,11 @@
 .parentduties-alt:has(input[name="parentduties-duty"]:checked) .parentduties-alt-detail {
     display: block;
 }
+
+/* "Who will help?" only matters for a duty, not for the alternatives */
+.parentduties-step:has(.parentduties-alt input:checked) .parentduties-helper {
+    display: none;
+}
+.parentduties-helper .form-horizontal {
+    margin-top: 10px;
+}
