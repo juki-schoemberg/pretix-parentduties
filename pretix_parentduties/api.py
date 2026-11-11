@@ -125,12 +125,13 @@ class DutySignupSerializer(serializers.ModelSerializer):
     order = serializers.SlugRelatedField(slug_field="code", read_only=True)
     covered_by_order = serializers.SerializerMethodField()
     family_code = serializers.SerializerMethodField()
+    voucher = serializers.SlugRelatedField(slug_field="code", read_only=True)
 
     class Meta:
         model = DutySignup
         fields = (
             "id", "order", "primary", "kind", "status", "slot", "covered_by", "covered_by_order",
-            "family_code", "sibling_code", "helper_name", "helper_phone", "note", "created",
+            "family_code", "sibling_code", "voucher", "helper_name", "helper_phone", "note", "created",
         )
         read_only_fields = fields
 
@@ -164,7 +165,7 @@ class DutySignupViewSet(PluginActiveMixin, viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return DutySignup.objects.filter(event=self.request.event).select_related(
-            "order", "slot", "covered_by__order",
+            "order", "slot", "covered_by__order", "voucher",
         ).order_by("id")
 
     @action(detail=True, methods=["post"])

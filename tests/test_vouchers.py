@@ -6,7 +6,8 @@ from django.test import Client
 
 from pretix.base.models import Order, OrderPosition, Quota, Voucher
 
-from pretix_parentduties.models import VoucherDutyConfig
+from pretix_parentduties import services
+from pretix_parentduties.models import DutySignup, VoucherDutyConfig
 from pretix_parentduties.services import (
     create_signups_for_order, order_triggers, positions_trigger, waiving_vouchers,
 )
@@ -93,16 +94,72 @@ def test_staff_pass_exempts_children(event, item, staff_pass, staff_voucher):
     order = make_order(event, item)  # child ticket, triggers
     OrderPosition.objects.create(order=order, item=staff_pass, price=0, voucher=staff_voucher)
     assert not order_triggers(order)
-    assert create_signups_for_order(order, None) == []
+    [s] = create_signups_for_order(order, None)
+    assert s.voucher == staff_voucher
     assert waiving_vouchers(order) == ["TEAM2027"]
 
 
-def test_no_signup_for_exempt_order(event, item, slot, exempt_voucher):
+def test_staff_pass_alone_is_recorded(event, staff_pass, staff_voucher):
+    """Staff pass first, children later: the exemption must exist for the code reference."""
+    order = make_order(event, staff_pass)
+    order.positions.update(voucher=staff_voucher)
+    [s] = create_signups_for_order(order, None)
+    assert s.voucher == staff_voucher
+
+
+def test_later_order_covered_by_order_code(event, item, staff_pass, staff_voucher):
+    staff = make_order(event, staff_pass, email="mama@x.de")
+    staff.positions.update(voucher=staff_voucher)
+    create_signups_for_order(staff, None)
+    root = exempt_signup(staff)
+
+    kids = make_order(event, item, email="papa@x.de")
+    [s] = create_signups_for_order(kids, {"choice": "sibling", "sibling_code": staff.code.lower()})
+    assert (s.kind, s.status, s.covered_by) == (DutySignup.KIND_SIBLING, DutySignup.STATUS_ACTIVE, root)
+    assert services.family_code(s) == staff.code
+
+    # canceling the staff order sends the covered order to review
+    services.cancel_order_signups(staff)
+    s.refresh_from_db()
+    assert s.status == DutySignup.STATUS_NEEDS_REVIEW
+
+
+def test_voucher_exemption_not_matched_by_email(event, item, staff_pass, staff_voucher):
+    staff = make_order(event, staff_pass, email="familie@example.org")
+    staff.positions.update(voucher=staff_voucher)
+    create_signups_for_order(staff, None)
+    assert services.find_family_signup(event, "familie@example.org") is None
+    kids = make_order(event, item, email="familie@example.org")
+    [s] = create_signups_for_order(kids, None)
+    assert s.kind == DutySignup.KIND_SLOT and s.status == DutySignup.STATUS_NEEDS_REVIEW
+
+
+def test_order_change_keeps_or_reviews_exemption(event, item, staff_pass, staff_voucher):
+    order = make_order(event, item)
+    OrderPosition.objects.create(order=order, item=staff_pass, price=0, voucher=staff_voucher)
+    create_signups_for_order(order, None)
+    services.handle_order_changed(order)
+    assert exempt_signup(order)
+    order.positions.filter(item=staff_pass).delete()  # staff pass removed, child remains
+    services.handle_order_changed(order)
+    assert order.parentduty_signups.get().status == DutySignup.STATUS_NEEDS_REVIEW
+
+
+def exempt_signup(order):
+    s = order.parentduty_signups.get()
+    assert (s.kind, s.status) == (DutySignup.KIND_EXEMPT, DutySignup.STATUS_ACTIVE)
+    return s
+
+
+def test_exempt_order_gets_voucher_exemption(event, item, slot, exempt_voucher):
     order = with_voucher(event, item, exempt_voucher)
-    assert create_signups_for_order(order, None) == []
-    assert create_signups_for_order(order, {"choice": "slot", "slots": [slot.pk]}) == []
-    assert not order.parentduty_signups.exists()
+    # even a (stale) slot choice from the session does not create a duty
+    [s] = create_signups_for_order(order, {"choice": "slot", "slots": [slot.pk]})
+    assert s == exempt_signup(order) and s.voucher == exempt_voucher
+    assert slot.occupied_count() == 0
     assert waiving_vouchers(order) == ["ELTERNFREI"]
+    from pretix_parentduties.placeholders import order_value
+    assert order_value("parent_duty", order) == "exempt (voucher ELTERNFREI)"
 
 
 # --------------------------------------------------------------- checkout
@@ -133,7 +190,7 @@ def test_checkout_with_exempt_voucher_skips_step(shop, item, slot, exempt_vouche
     c.post(base + "/checkout/confirm/", {})
     order = Order.objects.get(event=shop)
     assert order.positions.get().voucher == exempt_voucher
-    assert not order.parentduty_signups.exists()
+    assert exempt_signup(order).voucher == exempt_voucher
 
 
 def test_checkout_staff_pass_with_children(shop, item, staff_pass, slot, staff_voucher):
@@ -146,7 +203,20 @@ def test_checkout_staff_pass_with_children(shop, item, staff_pass, slot, staff_v
     c.post(base + "/checkout/confirm/", {})
     order = Order.objects.get(event=shop)
     assert order.positions.count() == 3
-    assert not order.parentduty_signups.exists()
+    assert exempt_signup(order).voucher == staff_voucher
+
+    # later the other parent registers another child and enters the staff order's code
+    c2 = Client()
+    c2.post(base + "/cart/add", {f"item_{item.pk}": "1"}, follow=True)
+    r = c2.post(base + "/checkout/questions/", {"email": "papa@x.de", "email_repeat": "papa@x.de"}, follow=True)
+    assert r.redirect_chain[-1][0].endswith("/checkout/parentduties/")
+    r = c2.post(base + "/checkout/parentduties/", {"parentduties-duty": "sibling",
+                                                   "parentduties-sibling_code": order.code}, follow=True)
+    assert r.redirect_chain[-1][0].endswith("/checkout/confirm/")
+    c2.post(base + "/checkout/confirm/", {})
+    later = Order.objects.exclude(pk=order.pk).get(event=shop)
+    s = later.parentduty_signups.get()
+    assert s.status == DutySignup.STATUS_ACTIVE and s.covered_by.order == order
 
 
 def test_checkout_position_voucher_with_second_child(shop, item, slot, position_voucher):
@@ -215,4 +285,4 @@ def test_order_box_shows_exemption(event, item, exempt_voucher, admin_client):
     order = with_voucher(event, item, exempt_voucher)
     create_signups_for_order(order, None)
     html = admin_client.get(f"/control/event/{event.organizer.slug}/{event.slug}/orders/{order.code}/").content.decode()
-    assert "exempted by voucher ELTERNFREI" in html
+    assert "exempt (voucher ELTERNFREI)" in html

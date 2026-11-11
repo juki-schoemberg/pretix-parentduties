@@ -87,15 +87,20 @@ def positions_trigger(event, positions):
     return any(p.item_id in ids and p.voucher_id not in skip for p in positions)
 
 
-def waiving_vouchers(order):
-    """Vouchers that exempted triggering positions of this order (for display in the backend)."""
+def waiving_voucher_objects(order):
+    """Vouchers of this order that exempt it (whole-order ones, or on triggering positions)."""
     positions = list(order.positions.select_related("voucher"))
     ids = triggering_item_ids(order.event)
     skip = skipping_vouchers(p.voucher_id for p in positions)
-    return sorted({
-        p.voucher.code for p in positions
+    found = {
+        p.voucher_id: p.voucher for p in positions
         if p.voucher_id in skip and (skip[p.voucher_id] or p.item_id in ids)
-    })
+    }
+    return sorted(found.values(), key=lambda v: v.code)
+
+
+def waiving_vouchers(order):
+    return [v.code for v in waiving_voucher_objects(order)]
 
 
 def order_triggers(order):
@@ -129,6 +134,7 @@ def find_family_signup(event, email, exclude_order=None):
         status=DutySignup.STATUS_ACTIVE,
         kind__in=(DutySignup.KIND_SLOT, DutySignup.KIND_EXEMPT),
         order__status__in=VALID_ORDER_STATES,
+        voucher__isnull=True,  # voucher exemptions only cover others via the order code
     )
     if exclude_order is not None:
         qs = qs.exclude(order=exclude_order)
@@ -215,7 +221,17 @@ def create_signups_for_order(order, data=None):
     if order.parentduty_signups.exists():
         return []
     if not order_triggers(order):
-        return []
+        waivers = waiving_voucher_objects(order)
+        if not waivers:
+            return []
+        # Exempt by voucher: record it, so that later orders of the family can refer to this
+        # order code (sibling fallback). It is deliberately not matched by e-mail.
+        signup = DutySignup.objects.create(
+            event=event, order=order, kind=DutySignup.KIND_EXEMPT, status=DutySignup.STATUS_ACTIVE,
+            voucher=waivers[0], email_normalized=normalize_email(order.email),
+        )
+        _log(order, "pretix_parentduties.signup.created", signup)
+        return [signup]
 
     data = data or {}
     choice = data.get("choice")
@@ -362,9 +378,16 @@ def handle_order_split(original, split_order):
 
 
 def handle_order_changed(order):
-    """No triggering product left: send active signups to review, never delete."""
+    """No triggering product left (or a voucher exemption is gone): send to review, never delete."""
     if order_triggers(order):
+        for signup in order.parentduty_signups.filter(status=DutySignup.STATUS_ACTIVE, voucher__isnull=False):
+            signup.status = DutySignup.STATUS_NEEDS_REVIEW
+            signup.save(update_fields=["status"])
+            _log(order, "pretix_parentduties.signup.needs_review", signup, reason="voucher_removed")
+            _flag_dependents(signup, "family_has_no_duty")
         return
+    if waiving_voucher_objects(order):
+        return  # still exempt by voucher
     freed = []
     for signup in order.parentduty_signups.filter(status=DutySignup.STATUS_ACTIVE):
         if signup.kind == DutySignup.KIND_SLOT:

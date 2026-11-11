@@ -26,6 +26,8 @@ The full concept (German) is in [`docs/KONZEPT.md`](docs/KONZEPT.md).
   “Applies to the whole order” (default) the whole order is exempt – e.g. a
   staff pass that can only be bought with a voucher, ordered together with the
   children. Without it, only the product bought with the voucher is exempt.
+  Later orders of the family are exempt too if they enter the exempt order's
+  code as sibling reference (no automatic e-mail match for these).
 - **One duty per family:** automatic match by normalized e-mail address,
   fallback via the order code of a sibling (followed to the root). Unknown
   codes never block the checkout – they land in the review list.

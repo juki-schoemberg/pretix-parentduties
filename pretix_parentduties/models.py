@@ -161,6 +161,11 @@ class DutySignup(models.Model):
         max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE, verbose_name=_("Status"),
     )
     note = models.TextField(blank=True, verbose_name=_("Note"))
+    voucher = models.ForeignKey(
+        "pretixbase.Voucher", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name=_("Exempting voucher"),
+        help_text="Set on 'exempt' signups created because the order used a voucher that exempts from the duty.",
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

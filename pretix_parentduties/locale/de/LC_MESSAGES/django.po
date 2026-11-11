@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pretix-parentduties\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-11 01:11+0000\n"
+"POT-Creation-Date: 2026-11-11 01:17+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: JuKi Schömberg e.V.\n"
 "Language-Team: German\n"
@@ -418,7 +418,7 @@ msgstr "Neue Produkte lösen Pflicht aus"
 msgid "Default for products that have not been configured explicitly."
 msgstr "Standard für Produkte, die nicht ausdrücklich eingestellt sind."
 
-#: forms.py:385 models.py:247
+#: forms.py:385 models.py:252
 msgid "Exempt from the parent duty"
 msgstr "Vom Elterndienst befreien"
 
@@ -430,7 +430,7 @@ msgstr ""
 "Bestellungen mit diesem Gutschein brauchen keinen Elterndienst, auch wenn "
 "ihre Produkte ihn sonst auslösen."
 
-#: forms.py:392 models.py:248
+#: forms.py:392 models.py:253
 msgid "Applies to the whole order"
 msgstr "Gilt für die ganze Bestellung"
 
@@ -628,11 +628,15 @@ msgstr "Status"
 msgid "Note"
 msgstr "Notiz"
 
-#: models.py:197
+#: models.py:166
+msgid "Exempting voucher"
+msgstr "Befreiender Gutschein"
+
+#: models.py:202
 msgid "This product triggers the parent duty"
 msgstr "Dieses Produkt löst die Elterndienst-Pflicht aus"
 
-#: models.py:198
+#: models.py:203
 msgid ""
 "If checked, buyers of this product are asked to commit to a parent duty "
 "during checkout."
@@ -640,15 +644,15 @@ msgstr ""
 "Wenn angehakt, werden Käufer*innen dieses Produkts im Checkout nach einem "
 "Elterndienst gefragt."
 
-#: models.py:212
+#: models.py:217
 msgid "Waiting"
 msgstr "Wartet"
 
-#: models.py:213
+#: models.py:218
 msgid "Fulfilled"
 msgstr "Erfüllt"
 
-#: models.py:214
+#: models.py:219
 msgid "Removed"
 msgstr "Entfernt"
 
@@ -671,108 +675,113 @@ msgstr "über eure Anmeldung %(code)s abgedeckt"
 msgid "covered by a sibling's registration (under review)"
 msgstr "über eine Geschwister-Anmeldung abgedeckt (in Klärung)"
 
-#: placeholders.py:53 services.py:563
+#: placeholders.py:54
+#, python-format
+msgid "exempt (voucher %(code)s)"
+msgstr "befreit (Gutschein %(code)s)"
+
+#: placeholders.py:55 services.py:586
 msgid "exempt"
 msgstr "befreit"
 
-#: placeholders.py:55
+#: placeholders.py:57
 msgid "no duty"
 msgstr "kein Dienst"
 
-#: placeholders.py:76
+#: placeholders.py:78
 msgid "Parent duty of the order"
 msgstr "Elterndienst der Bestellung"
 
-#: placeholders.py:77 placeholders.py:183
+#: placeholders.py:79 placeholders.py:185
 msgid "Cake Monday, 07/13/2027, 14:00–16:00"
 msgstr "Kuchen Montag, 13.07.2027, 14:00–16:00 Uhr"
 
-#: placeholders.py:78
+#: placeholders.py:80
 msgid "Name of the parent duty"
 msgstr "Name des Elterndienstes"
 
-#: placeholders.py:79 placeholders.py:194 placeholders.py:211
+#: placeholders.py:81 placeholders.py:196 placeholders.py:213
 msgid "Cake Monday"
 msgstr "Kuchen Montag"
 
-#: placeholders.py:80
+#: placeholders.py:82
 msgid "Description of the parent duty"
 msgstr "Beschreibung des Elterndienstes"
 
-#: placeholders.py:82
+#: placeholders.py:84
 msgid "Please drop it off at the kitchen by 13:30"
 msgstr "Bitte bis 13:30 an der Küche abgeben"
 
-#: placeholders.py:83
+#: placeholders.py:85
 msgid "Category of the parent duty"
 msgstr "Kategorie des Elterndienstes"
 
-#: placeholders.py:84
+#: placeholders.py:86
 msgid "Cake"
 msgstr "Kuchen"
 
-#: placeholders.py:85
+#: placeholders.py:87
 msgid "Date of the parent duty"
 msgstr "Datum des Elterndienstes"
 
-#: placeholders.py:87
+#: placeholders.py:89
 msgid "Start time of the parent duty"
 msgstr "Beginn des Elterndienstes"
 
-#: placeholders.py:90
+#: placeholders.py:92
 msgid "End time of the parent duty"
 msgstr "Ende des Elterndienstes"
 
-#: placeholders.py:93
+#: placeholders.py:95
 msgid "Time of the parent duty"
 msgstr "Uhrzeit des Elterndienstes"
 
-#: placeholders.py:95
+#: placeholders.py:97
 msgid "Helper of the parent duty"
 msgstr "Helfende Person des Elterndienstes"
 
-#: placeholders.py:97
+#: placeholders.py:99
 msgid "Helper phone of the parent duty"
 msgstr "Telefon der helfenden Person"
 
-#: placeholders.py:99
+#: placeholders.py:101
 msgid "Status of the parent duty"
 msgstr "Status des Elterndienstes"
 
-#: placeholders.py:99 services.py:561
+#: placeholders.py:101 services.py:584
 msgid "committed"
 msgstr "zugesagt"
 
-#: placeholders.py:100
+#: placeholders.py:102
 msgid "Order code carrying the family's duty"
 msgstr "Bestellcode mit der eigentlichen Zusage der Familie"
 
-#: placeholders.py:102
+#: placeholders.py:104
 msgid "Note on the parent duty"
 msgstr "Notiz zum Elterndienst"
 
-#: placeholders.py:103
+#: placeholders.py:105
 msgid "We'll bring a gluten-free cake."
 msgstr "Wir bringen einen glutenfreien Kuchen."
 
-#: placeholders.py:158
+#: placeholders.py:160
 #, python-format
 msgid "%(n)s free"
 msgstr "%(n)s frei"
 
-#: placeholders.py:183
+#: placeholders.py:185
 msgid "Set-up Friday, 07/09/2027"
 msgstr "Aufbau Freitag, 09.07.2027"
 
-#: placeholders.py:201
+#: placeholders.py:203
 msgid "Cake Monday, 07/13/2027 (2 free)"
 msgstr "Kuchen Montag, 13.07.2027 (2 frei)"
 
-#: placeholders.py:210
+#: placeholders.py:212
 msgid "All parent duties of the order"
 msgstr "Alle Elterndienste der Bestellung"
 
-#: placeholders.py:218
+#: placeholders.py:220
 msgid "Link to the parent duty"
 msgstr "Link zum Elterndienst"
 
@@ -858,19 +867,19 @@ msgstr "Familien-Bestellcode"
 msgid "Number of duties"
 msgstr "Anzahl Dienste"
 
-#: services.py:557
+#: services.py:580
 msgid "under review"
 msgstr "in Klärung"
 
-#: services.py:559
+#: services.py:582
 msgid "canceled"
 msgstr "storniert"
 
-#: services.py:562
+#: services.py:585
 msgid "covered by sibling"
 msgstr "über Geschwister abgedeckt"
 
-#: services.py:564
+#: services.py:587
 msgid "cannot help"
 msgstr "kann nicht"
 
@@ -904,12 +913,12 @@ msgstr "Zusagen"
 msgid "Products"
 msgstr "Produkte"
 
-#: signals.py:342
+#: signals.py:343
 msgctxt "shredder"
 msgid "Parent duty details"
 msgstr "Elterndienst-Angaben"
 
-#: signals.py:344
+#: signals.py:345
 msgid ""
 "This will remove helper names, phone numbers and notes of parent duties."
 msgstr ""

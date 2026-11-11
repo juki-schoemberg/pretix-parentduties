@@ -67,10 +67,14 @@ Zusagen in der REST-API der Bestellung (`plugin_data`).
   muss dafür keine Pflicht auslösen.
 - Ohne „ganze Bestellung“ ist nur die mit dem Gutschein gekaufte Position befreit; weitere Kinder
   im selben Warenkorb lösen die Pflicht weiterhin aus.
-- Folge: kein Checkout-Schritt, keine Zusage. Die Box auf der Bestellseite im Backend zeigt
-  „Kein Elterndienst nötig: befreit durch Gutschein …“.
-- Gilt pro Bestellung: Eine spätere, separate Bestellung derselben Familie ohne Gutschein wird
-  wieder nach einem Dienst gefragt (keine Familien-Abdeckung durch den Gutschein).
+- Folge: kein Checkout-Schritt. Die Bestellung bekommt eine Zusage „befreit“ mit Verweis auf den
+  Gutschein (Backend, Platzhalter und API zeigen „befreit (Gutschein …)“). Bei „ganze Bestellung“
+  passiert das auch, wenn nur der Mitarbeiterausweis bestellt wurde.
+- Spätere Bestellungen der Familie: Wer im Checkout „Geschwisterkind ist schon angemeldet“ wählt
+  und den Bestellcode der befreiten Bestellung angibt, ist ebenfalls abgedeckt. Eine automatische
+  Erkennung per E-Mail gibt es für Gutschein-Befreiungen bewusst nicht. Wird die befreite
+  Bestellung storniert, gehen die daran hängenden Bestellungen in die Klärung; fällt der
+  Gutschein durch eine Bestelländerung weg, geht die Befreiung selbst in die Klärung.
 
 ## Bewusste Abweichungen vom Konzept
 

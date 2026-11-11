@@ -273,7 +273,8 @@ def dashboard_widget(sender, subevent=None, lazy=False, **kwargs):
 # ---------------------------------------------------------------- orders
 
 def _order_signups(order):
-    return list(order.parentduty_signups.select_related("slot", "covered_by__order").order_by("-primary", "id"))
+    return list(order.parentduty_signups.select_related("slot", "covered_by__order", "voucher").order_by(
+        "-primary", "id"))
 
 
 @receiver(control_order_info, dispatch_uid=f"{DUID}_control_order_info")
