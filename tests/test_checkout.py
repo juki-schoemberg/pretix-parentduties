@@ -189,3 +189,15 @@ def test_multiple(shop, item, slot, slot2):
     assert r.redirect_chain[-1][0].endswith("/checkout/confirm/")
     confirm(c, shop)
     assert DutySignup.objects.filter(kind="slot", status="active").count() == 2
+
+
+def test_sibling_code_field_sits_in_sibling_option(shop, item, slot):
+    c = Client()
+    html = fill_cart(c, shop, item).content.decode()
+    article = re.search(r'<article[^>]*id="ppd-alt-sibling".*?</article>', html, re.S).group(0)
+    assert 'name="parentduties-sibling_code"' in article
+    assert html.count('name="parentduties-sibling_code"') == 1
+    # without the sibling option there is no code field at all
+    shop.settings.parentduties_sibling_code = False
+    html = c.get(step_url(shop)).content.decode()
+    assert 'name="parentduties-sibling_code"' not in html

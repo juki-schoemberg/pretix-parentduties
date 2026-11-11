@@ -49,3 +49,12 @@
         text-align: left;
     }
 }
+
+/* details of an alternative (e.g. the sibling's order code): only while it is selected */
+.parentduties-alt .parentduties-alt-detail {
+    display: none;
+    margin-top: 10px;
+}
+.parentduties-alt:has(input[name="parentduties-duty"]:checked) .parentduties-alt-detail {
+    display: block;
+}
